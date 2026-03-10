@@ -133,6 +133,8 @@ FLAG: Only missing docs that would confuse future maintainers. Don't over-commen
 → Say "go" to start one-at-a-time resolution.
 ```
 
+**IMPORTANT:** Always end Phase 4 with the "say go" prompt, even if there is only one finding or only SUGGESTION-level items. Every actionable finding gets resolved through Phase 5. The only exception is a clean APPROVE with zero findings.
+
 ## Phase 5: One-at-a-Time Resolution
 
 When user says "go":

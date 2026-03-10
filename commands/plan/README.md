@@ -50,11 +50,19 @@ Completed entries auto-delete after 30 days. Task files in `.claude/tasks/` are 
 Used by: `/plan:review`, `/plan:improve-idea`, `/plan:start-implementation`, `/plan:code-review`
 
 1. Read `./.claude/workflow-state.json`
+   - **If file is missing:** fall back to directory scan (step 1b)
    - Auto-cleanup: delete entries where `completedAt` > 30 days ago
    - Filter by required status (varies by command)
-   - If 0 matching: show appropriate error
+   - If 0 matching: fall back to directory scan (step 1b)
    - If 1 matching: auto-select, announce selection
    - If multiple: show selector with names and timestamps
+
+1b. **Fallback: Directory Scan** (when workflow-state.json is missing or has no matches)
+   - Scan `./.claude/tasks/*/README.md` for task directories
+   - If 0 found: error "No plans found. Run /plan:handoff first."
+   - If 1 found: auto-select, announce selection
+   - If multiple found: show selector with directory names
+   - **After selection, create/update `./.claude/workflow-state.json`** with the selected plan entry (status based on command's filter, e.g., `ready`)
 
 2. Verify selected plan path exists
    - If missing: offer to remove stale entry, re-run selection

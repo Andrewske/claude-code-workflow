@@ -119,16 +119,16 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 {External dependencies, prerequisites, or setup requirements}
 ```
 
-### Phase 6: Update Workflow State
+### Phase 6: Update Workflow State (REQUIRED — do not skip)
 
-Read existing `./.claude/workflow-state.json` (or create if missing).
+**This step is critical.** Downstream commands (`/plan:review`, `/plan:start-implementation`) depend on this file to find the plan.
 
-If a plan with this name already exists in state:
-- Warn: "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
-- If yes: Update the entry, reset status to "ready"
-- If no: Abort handoff
-
-Add/update entry for this plan:
+1. Read existing `./.claude/workflow-state.json` (or create new file if missing)
+2. If a plan with this name already exists in state:
+   - Warn: "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
+   - If yes: Update the entry, reset status to "ready"
+   - If no: Abort handoff
+3. Add/update entry for this plan:
 
 ```json
 {
@@ -142,16 +142,21 @@ Add/update entry for this plan:
 }
 ```
 
+4. **Write the file** to `./.claude/workflow-state.json` using the Write tool
+5. **Verify** the file exists and contains the plan entry by reading it back
+
 **Important:** Preserve existing plans in the state file. Only add/update the entry for the current plan.
 
-**After updating state file:**
+### Phase 7: Summary
+
 1. List all created files with count
 2. Verify numbering is sequential
-3. Output summary:
+3. **Verify `./.claude/workflow-state.json` exists and contains the plan entry**
+4. Output summary:
    ```
    ✓ Plan distributed to ./.claude/tasks/{plan-name}/
    ✓ {N} task files + README.md created
-   ✓ Workflow state updated
+   ✓ Workflow state updated (.claude/workflow-state.json)
 
    Ready for implementation:
    → .claude/tasks/{plan-name}/README.md
@@ -161,6 +166,8 @@ Add/update entry for this plan:
    2. Run /plan:review
       (auto-detects plan, or shows selector if multiple ready plans)
    ```
+
+**If workflow-state.json was NOT created, stop and fix it before showing the summary.**
 
 ## ERROR HANDLING
 

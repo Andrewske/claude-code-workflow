@@ -17,9 +17,9 @@ Coordinate parallel Sonnet sub-agents to implement a distributed plan. Each task
 
 | File | Purpose | Updated When |
 |------|---------|--------------|
-| `.claude/plans/workflow-state.json` | Plan-level status tracking | Plan starts, completes, or abandoned |
-| `{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
-| `{plan}/XX-task.md` | Individual task status | Task completes or fails |
+| `.claude/workflow-state.json` | Plan-level status tracking | Plan starts, completes, or abandoned |
+| `.claude/tasks/{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
+| `.claude/tasks/{plan}/XX-task.md` | Individual task status | Task completes or fails |
 
 **Plan status values:** `ready` | `implementing` | `complete` | `failed`
 **Task status values:** `pending` | `running` | `done` | `failed`
@@ -41,7 +41,7 @@ git status --porcelain
 
 **1.2 Check for active implementation:**
 
-Check `.claude/plans/workflow-state.json` for any plan with `status === "implementing"`:
+Check `.claude/workflow-state.json` for any plan with `status === "implementing"`:
 
 If found, prompt:
 ```
@@ -57,11 +57,7 @@ Select (1-2):
 
 **1.3 Select plan:**
 
-1. Read `.claude/plans/workflow-state.json`
-2. Filter plans where `status === "ready"`
-3. If one plan: auto-select
-4. If multiple: prompt user to choose
-5. If none: "No ready plans. Run /plan:handoff to create one."
+Follow **Plan Selection Pattern** (see README) with status filter: `ready`
 
 **1.4 Record implementation start:**
 

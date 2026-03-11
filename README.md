@@ -34,3 +34,9 @@ skills/
 ```
 
 See `commands/plan/README.md` for full workflow details.
+
+## Dependencies
+
+Some commands require external tools:
+
+- **qol/docs.md** - Requires [claude-code-docs](https://github.com/ericbuess/claude-code-docs) to be installed

@@ -206,6 +206,14 @@ Only if reviewing a tracked plan:
 2. Set `completedAt` to current ISO timestamp
 3. Confirm: "✅ Review complete for {plan-name}. Auto-cleanup in 7 days."
 
+**STOP HERE. Do NOT start implementation or make further changes.** Tell the user:
+
+```
+To continue, run /clear then /plan:start-implementation
+```
+
+This ensures the context window is fresh before implementation begins.
+
 ---
 
 ## Review Principles

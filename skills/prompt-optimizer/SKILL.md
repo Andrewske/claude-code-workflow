@@ -94,17 +94,37 @@ Present all proposed changes as numbered findings before applying anything:
 **Target Model:** [model]
 **Task Type:** [creative/technical/educational/complex/analytical]
 
-### Findings
+### CRITICAL (Must Fix)
 
-1. **[Change Title]** [CRITICAL|HIGH|MEDIUM|LOW]
+1. **[Change Title]**
    - **Problem**: [What's wrong or missing]
    - **Fix**: [Specific change to make]
 
-2. **[Change Title]** [severity]
+---
+
+### HIGH (Should Fix)
+
+2. **[Change Title]**
    - **Problem**: [description]
    - **Fix**: [description]
 
-[... all findings ...]
+---
+
+### MEDIUM (Consider)
+
+3. **[Change Title]**
+   - **Problem**: [description]
+   - **Fix**: [description]
+
+---
+
+### LOW (Nice to Have)
+
+4. **[Change Title]**
+   - **Problem**: [description]
+   - **Fix**: [description]
+
+Omit empty severity sections. Number findings sequentially across all sections.
 
 ---
 

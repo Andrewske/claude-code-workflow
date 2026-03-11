@@ -18,8 +18,9 @@ Output: Optimized prompt + explanation of changes
 2. If prompt is about a specific library/framework, use context7 MCP to pull its docs
 3. Deconstruct intent, entities, constraints
 4. Diagnose clarity gaps and ambiguity
-5. Apply model-appropriate techniques
-6. Deliver optimized prompt in copy-paste format
+5. Present findings for review — do NOT apply changes yet
+6. Walk through findings one at a time (on "go")
+7. Apply approved changes and deliver optimized prompt
 
 Default to quick optimization. Ask clarifying questions only for high-stakes or ambiguous prompts. User can say BASIC or DETAIL to override.
 
@@ -83,16 +84,81 @@ When optimizing an existing prompt, show changes inline using ~~strikethrough~~ 
 
 Core technique templates: [reference/techniques.md](reference/techniques.md)
 
-### 4. DELIVER
+### 4. PRESENT FINDINGS
+
+Present all proposed changes as numbered findings before applying anything:
+
+```
+## Prompt Optimization: [brief description]
+
+**Target Model:** [model]
+**Task Type:** [creative/technical/educational/complex/analytical]
+
+### Findings
+
+1. **[Change Title]** [CRITICAL|HIGH|MEDIUM|LOW]
+   - **Problem**: [What's wrong or missing]
+   - **Fix**: [Specific change to make]
+
+2. **[Change Title]** [severity]
+   - **Problem**: [description]
+   - **Fix**: [description]
+
+[... all findings ...]
+
+---
+
+### Summary
+- **Top 3 by impact**, ranked
+- **Pro Tip:** [Model-specific or usage advice]
+
+> Ready to resolve. Say **go** to walk through, or pick numbers to discuss.
+```
+
+**STOP. Do NOT apply changes. Wait for user to say "go" or pick numbers.**
+
+### 5. RESOLVE (on "go")
+
+#### Step 1: Categorize
+- **Autosolve** (≥90% confidence): Clear improvements, no trade-offs
+- **Discussion** (<90%): Multiple valid approaches, user preference matters
+
+#### Step 2: Discussion Items (one at a time)
+
+For each:
+```
+**Finding {N}: [Title]**
+
+- A: [Approach]
+  - Pro: [benefit]
+  - Con: [trade-off]
+
+- B: [Approach]
+  - Pro: [benefit]
+  - Con: [trade-off]
+
+Recommended: {X} — {reason}
+```
+
+**STOP. Present ONE discussion item, then end your response. Do not continue until user replies.**
+
+#### Step 3: Autosolve Batch
+
+After all discussion items resolved:
+```
+**Autosolve — High Confidence**
+{N}. {Description} → {Change} ({%})
+...
+
+Confirm all, or call out numbers to skip/discuss.
+```
+
+#### Step 4: Apply & Deliver
+
+Apply all approved changes and present the final optimized prompt:
 ```
 **Optimized Prompt:**
-[Ready-to-use prompt]
-
-**Key Improvements:**
-- [Change 1 with benefit]
-- [Change 2 with benefit]
-
-**Pro Tip:** [Model-specific or usage advice]
+[Ready-to-use prompt with all approved changes applied]
 ```
 
 If the prompt is for a production system, offer to generate 3-5 test inputs (happy path, edge case, adversarial) to validate the prompt.

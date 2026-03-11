@@ -62,39 +62,25 @@ Then prompt:
 
 ## Phase 3: Resolution (on "go")
 
-### Step 1: Categorize
-- **Autosolve** (≥90% confidence): Clear wins, no meaningful trade-offs
-- **Discussion** (<90%): Trade-offs need user input
+Walk through **every** suggestion one at a time. Do NOT skip or batch suggestions — each one gets user input.
 
-*If all suggestions are Autosolve, skip to Step 3.*
+### For each suggestion:
 
-### Step 2: Discussion Items (one at a time)
-
-For each:
+Present it with options:
 ```
 **{N}. {Title}**
 {What} → {Why}
 
-**A:** {Approach} — Pro: {+} / Con: {-}
-**B:** {Approach} — Pro: {+} / Con: {-}
+- A: Apply as described
+- B: Apply with modification: {variation}
+- C: Skip
 
-Recommended: {X} ({confidence}%) — {reason}
+Recommended: {X} — {reason}
 ```
 
-**STOP. Present ONE discussion item, then end your response. Do not continue until user replies.**
+**STOP. Present ONE suggestion, then end your response. Do not continue until user replies.**
 
-### Step 3: Autosolve Batch
+### After all suggestions resolved:
 
-After discussions complete:
-```
-**Autosolve — High Confidence**
-{N}. {Description} → {Change} ({%})
-...
-
-Confirm all, or call out numbers to skip/discuss.
-```
-
-### Step 4: Apply
-
-Edit plan documents with approved changes.
+Apply approved changes to plan documents.
 > ✅ Applied. Ready for /plan:start-implementation.

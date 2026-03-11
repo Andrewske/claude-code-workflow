@@ -124,7 +124,13 @@ Confidence calibration:
    - **Problem**: [Specific description]
    - **Impact**: [What breaks]
    - **Fix**: [Concrete recommendation]
-   - **Alternatives**: Option A [approach] — [trade-off] | Option B [approach] — [trade-off]
+   - **Alternatives**:
+     - A: [approach]
+       - Pro: [benefit]
+       - Con: [trade-off]
+     - B: [approach]
+       - Pro: [benefit]
+       - Con: [trade-off]
 
 [Continue for each level: HIGH, MEDIUM, LOW]
 [Every finding MUST include [Section: X] reference]
@@ -174,13 +180,13 @@ For each:
 ```
 **Finding {N}: [Title]** [Section: X]
 
-Option 1: [Approach]
-- Pro: [Benefit]
-- Con: [Trade-off]
+- A: [Approach]
+  - Pro: [benefit]
+  - Con: [trade-off]
 
-Option 2: [Approach]
-- Pro: [Benefit]
-- Con: [Trade-off]
+- B: [Approach]
+  - Pro: [benefit]
+  - Con: [trade-off]
 
 **Recommended:** Option [X] ([confidence]%) — [reasoning]
 ```

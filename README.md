@@ -14,8 +14,8 @@ ln -s $(pwd)/commands/* ~/.claude/commands/
 
 ```
 commands/
-  discuss.md          # Requirements discovery conversation
   plan/               # Full planning pipeline (see plan/README.md)
+                      #   includes discuss.md for requirements discovery
   qol/                # Quality-of-life utilities
 skills/
   expert-skill-creator/  # Skill creation guidance
@@ -24,7 +24,7 @@ skills/
 ## Quick Start
 
 ```
-/discuss              # Start requirements conversation
+/plan:discuss          # Start requirements conversation
 # (enter plan mode)   # Claude builds the plan
 /plan:handoff         # Convert to task files
 /clear

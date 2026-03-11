@@ -5,7 +5,7 @@ Commands for the full planning-to-implementation pipeline.
 ## Workflow
 
 ```
-/discuss → plan mode → /plan:handoff → /clear → /plan:review → /plan:improve-idea
+/plan:discuss → plan mode → /plan:handoff → /clear → /plan:review → /plan:improve-idea
     → /clear → /plan:start-implementation → /clear → /plan:code-review
 ```
 
@@ -15,7 +15,7 @@ Each `/clear` resets context for fresh-eyes review. This is intentional - the re
 
 | Command | Purpose | Status Filter |
 |---------|---------|---------------|
-| `/discuss` | Requirements discovery with structured handoff | - |
+| `/plan:discuss` | Requirements discovery with structured handoff | - |
 | `/plan:handoff` | Transform plan into task files for sub-agents | - |
 | `/plan:review` | Adversarial technical review | `ready` |
 | `/plan:improve-idea` | Brainstorm through 4 lenses | `ready` |

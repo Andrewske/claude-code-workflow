@@ -29,12 +29,13 @@ What can be removed, merged, or eliminated? Minimum viable version?
 ### Strengthen (0-4 suggestions)
 What's fragile, unclear, or will cause implementation friction?
 
-### Stretch (0-3 suggestions)
-- "Wouldn't it be cool if..." - delightful features
-- Future-proofing - cheap hooks now, expensive retrofits later
-- Wild cards - might be genius or terrible
-
-*Optional: "What could go wrong?" — surface blind spots and risks.*
+### Stretch (2-5 suggestions)
+Be generous here — more ideas are better even if some feel unnecessary. Think expansively:
+- "Wouldn't it be cool if..." — delightful features users didn't know they wanted
+- Future-proofing — cheap hooks now, expensive retrofits later
+- Wild cards — might be genius or terrible, include them anyway
+- Adjacent possibilities — what does this unlock if we push it further?
+- "What could go wrong?" — surface blind spots and risks
 
 ### Suggestion Format
 Each suggestion, exactly:

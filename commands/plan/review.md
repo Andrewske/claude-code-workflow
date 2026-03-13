@@ -218,5 +218,8 @@ For each approved finding:
 
 ## After Review Complete
 
-1. Run `/clear`
-2. Run `/plan:start-implementation`
+**STOP HERE. Do NOT start implementation or make further changes.** Tell the user:
+
+```
+To continue, run /clear then /plan:start-implementation
+```

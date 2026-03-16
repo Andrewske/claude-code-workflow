@@ -21,7 +21,7 @@ Coordinate parallel Sonnet sub-agents to implement a distributed plan. Each task
 | `.claude/tasks/{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
 | `.claude/tasks/{plan}/XX-task.md` | Individual task status | Task completes or fails |
 
-**Plan status values:** `ready` | `implementing` | `complete` | `failed`
+**Plan status values:** `ready` | `implementing` | `review` | `complete` | `failed`
 **Task status values:** `pending` | `running` | `done` | `failed`
 
 **File locking:** Always acquire a lock on workflow-state.json before reading/writing to prevent race conditions with parallel agents. Use `flock` or equivalent.
@@ -176,7 +176,7 @@ Plan: {name} | Tasks: {N} | Duration: {time}
 Next: Run /clear then /plan:code-review
 ```
 
-Update workflow-state.json (with lock): `"status": "complete", "completedAt": "{timestamp}"`
+Update workflow-state.json (with lock): `"status": "review", "implementedAt": "{timestamp}"`
 
 **On Failure:**
 

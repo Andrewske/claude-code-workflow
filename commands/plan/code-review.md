@@ -11,7 +11,7 @@ You are a meticulous code reviewer with deep expertise in security, performance,
 Use the provided commit/range directly. Skip plan selection.
 
 ### Otherwise, follow Plan Selection Pattern:
-Follow the **Plan Selection Pattern** (see README.md) with status filter: `implementing` OR `complete`
+Follow the **Plan Selection Pattern** (see README.md) with status filter: `review`
 
 **If plan selected:**
 1. Read `preImplCommit` from state file (fallback: plan's progress.md header)

@@ -21,7 +21,7 @@ Each `/clear` resets context for fresh-eyes review. This is intentional - the re
 | `/plan:improve-idea` | Brainstorm through 4 lenses | `ready` |
 | `/plan:best-idea` | Evaluate options, recommend solution | (inline interrupt) |
 | `/plan:start-implementation` | Orchestrate parallel Sonnet sub-agents | `ready` |
-| `/plan:code-review` | Review implementation commits | `implementing` or `complete` |
+| `/plan:code-review` | Review implementation commits | `review` |
 
 ## State Management
 
@@ -32,7 +32,7 @@ All commands share `./.claude/workflow-state.json`:
   "plans": {
     "my-plan": {
       "path": ".claude/tasks/my-plan/",
-      "status": "ready|implementing|complete|failed",
+      "status": "ready|implementing|review|complete|failed",
       "preImplCommit": "abc123",
       "handoffAt": "ISO timestamp",
       "completedAt": "ISO timestamp"
@@ -41,7 +41,7 @@ All commands share `./.claude/workflow-state.json`:
 }
 ```
 
-**Status lifecycle:** `ready` → `implementing` → `complete` | `failed`
+**Status lifecycle:** `ready` → `implementing` → `review` → `complete` | `failed`
 
 Completed entries auto-delete after 30 days. Task files in `.claude/tasks/` are preserved as audit trail.
 

@@ -349,7 +349,7 @@ Generated: {date}
 - Triage agreed: {N} findings
 - Debate resolved: {N} findings
 - Unresolved: {N} findings
-- Concession flag: [Claude never conceded | GPT never conceded | Both conceded]
+- Concession flag: [Claude never conceded | GPT never conceded | Both conceded] (concession = agent changed position during Phase 4 debate only; triage agreement is not a concession)
 
 ## Debated Findings
 
@@ -366,6 +366,7 @@ Generated: {date}
 **Round 2 (if applicable):**
 - Claude final call: CONCEDE | HOLD
 - Outcome: AGREED | UNRESOLVED
+- Outcome-reason: debated | resume-failed
 
 [Repeat for each debated finding]
 ```

@@ -65,46 +65,62 @@ This project has the following context files in the repo root: [list files that 
 ```
 [context prefix if applicable]
 
-You are reviewing an engineering plan for implementation feasibility. Your job: find issues the planner may have missed when imagining the implementation.
+You are a pragmatic implementation engineer — the person who has to actually build this plan. Your job is to find every gap, hidden dependency, and risky assumption the planner glossed over. You are NOT the adversarial reviewer finding logical flaws — you are the builder who knows where real implementations diverge from plans.
 
 PLAN DIRECTORY: [plan-path]
 
 PLAN CONTENT:
 [full plan README and all task files, or summarized versions if large]
 
-REVIEW FOCUS (implementation feasibility lens):
-- Implementation feasibility: Will each step actually work as written? Are there unstated prerequisites?
-- Dependency ordering: Are task dependencies correct and complete? What can be parallelized vs must be sequential?
-- Simplification opportunities: Is there a simpler approach that handles 90% of the cases?
-- Integration risks: What are the failure points where this plan touches existing systems?
-- Missing error handling: What error paths are unaddressed?
-- Code verification: For each task that references existing code (e.g., "The plan references X"), read the relevant source files and verify the assumption against the actual code.
+REVIEW FOCUS (implementation feasibility lens — pick each issue through exactly one of these lenses):
+- Implementation feasibility: Will each step actually work as written? Are there unstated prerequisites? What setup is assumed but not described?
+- Dependency ordering: Are task dependencies correct and complete? What MUST be sequential vs. what can be parallelized?
+- Simplification opportunities: Is there a simpler approach that handles 90% of cases with 50% less effort?
+- Integration risks: What are the concrete failure points where this plan touches existing systems or APIs?
+- Missing error handling: What error paths are unaddressed? What happens when an external call fails?
+- Code verification: For any task that references an existing module, function, or API — use --search to find it in the codebase and verify the assumption against the actual code. Note the file path in your finding.
 
 INSTRUCTIONS:
-- Technical only. Skip documentation style, formatting, stakeholder concerns.
-- Specific or silent: every finding must reference the specific task file or section.
-- Every criticism needs a concrete fix.
-- Quality over quantity: solid plans exist. Don't invent problems.
+- Technical only. Skip documentation style, formatting, naming opinions, stakeholder concerns.
+- Specific or silent: every finding MUST reference the exact task file name and section. Do not write vague findings that could apply to any plan.
+- Every criticism MUST have a concrete, actionable fix — not "consider X" but "in task 03, change step 2 to do Y".
+- Quality over quantity: solid plans exist. Do not invent problems. Aim for ≤8 findings unless the plan has genuine systemic issues.
+- Use --search to verify assumptions before citing them as problems.
 
-For each issue found, use EXACTLY this format:
+For each issue found, use EXACTLY this format — no variations, no extra fields:
 
 FINDING:
-- ID: G[N]
-- Title: [short title]
-- Section: [task file or section reference]
-- Severity: CRITICAL | HIGH | MEDIUM | LOW
-- Problem: [specific description]
-- Impact: [what breaks or is at risk]
-- Fix: [concrete recommendation]
-- Confidence: [XX%]
+- ID: G1
+- Title: Missing database migration step
+- Section: 03-implement-auth.md — Step 2
+- Severity: CRITICAL
+- Problem: Step 2 assumes the `sessions` table exists but no migration task creates it. The plan has no DB setup task.
+- Impact: Implementation will fail at runtime with a table-not-found error on first login attempt.
+- Fix: Add a task 02b-create-sessions-table.md before task 03. Include the CREATE TABLE statement and a rollback migration.
+- Confidence: 95%
 
-After all findings, output a "What Works" section listing strengths of the plan.
+FINDING:
+- ID: G2
+- Title: API rate limit not handled in retry logic
+- Section: 05-external-api-integration.md — Error Handling
+- Severity: HIGH
+- Problem: The retry logic retries on any 4xx response, but the external API returns 429 for rate limits. Retrying immediately on 429 will worsen the rate limit situation.
+- Impact: Cascading failures under load; the integration will amplify rate limit pressure instead of backing off.
+- Fix: In task 05, add a special case: if response is 429, read the Retry-After header and sleep for that duration before retrying. Cap at 3 retries with exponential backoff.
+- Confidence: 90%
+
+[Continue with real findings in this exact format]
+
+After all findings, output:
+
+WHAT WORKS:
+[2-5 specific strengths of the plan — what the planner got right]
 ```
 
 **Run codex** (without `--ephemeral` so the session persists for resume) using `run_in_background: true` and a 300000ms timeout:
 
 ```
-cat /tmp/dual-review-{TIMESTAMP}-gpt-prompt.txt | codex exec -m gpt-5.2-codex --full-auto --json -C <working_directory> - 2>/dev/null
+cat /tmp/dual-review-{TIMESTAMP}-gpt-prompt.txt | codex exec -m gpt-5.2-codex --full-auto --search --json -C <working_directory> - 2>/dev/null
 ```
 
 Note the `thread_id` from the `thread.started` JSONL event — this is the session ID needed for Phase 3 (triage resume). Extract it after the background task completes.
@@ -169,15 +185,32 @@ You previously reviewed a plan and produced findings. The other reviewer (Claude
 
 [Claude's findings in structured format — all findings C1, C2, ... listed verbatim]
 
-For each of Claude's findings, respond with:
-FINDING: [Claude's finding ID]
-VERDICT: AGREE | DISAGREE
-PREVIEW: [If DISAGREE: 2-sentence summary of your counter-argument. If AGREE: N/A]
+For each of Claude's findings, evaluate whether it identifies a real, material problem. Respond using EXACTLY this format — one block per finding, no extra prose before or after:
 
-Also note any of YOUR own findings that overlap with Claude's (same issue, different angle):
-OVERLAP: [Your finding ID] ↔ [Claude's finding ID]
+FINDING: C1
+VERDICT: AGREE
+PREVIEW: N/A
 
-Respond in plain text using the exact format above. No extra prose.
+FINDING: C2
+VERDICT: DISAGREE
+PREVIEW: The plan explicitly handles this in task 04 step 3 — the retry logic uses exponential backoff starting at 1s. Claude's finding assumes the default is immediate retry but the implementation notes specify otherwise.
+
+FINDING: C3
+VERDICT: AGREE
+PREVIEW: N/A
+
+[Continue for every Claude finding in order]
+
+After the per-finding responses, note any of YOUR findings that address the same issue as a Claude finding (even from a different angle):
+OVERLAP: G2 ↔ C3
+OVERLAP: G5 ↔ C1
+
+Rules:
+- AGREE if the issue is real and material, even if you'd phrase it differently.
+- DISAGREE only if you have specific evidence from the plan or codebase that refutes it.
+- PREVIEW is required on DISAGREE (2 sentences max). Use N/A on AGREE.
+- Every Claude finding must get exactly one FINDING/VERDICT/PREVIEW block.
+- No extra commentary. No summaries. No prose outside the blocks.
 ```
 
 **Send via resume** (using the session ID from Phase 2):
@@ -229,35 +262,66 @@ Each agent evaluates the disagreed finding using the best-idea framework from `c
 **Write debate prompt to `/tmp/dual-review-{TIMESTAMP}-debate-{N}.txt`:**
 
 ```
-We disagree on this finding from the plan review:
+We disagree on a finding from the plan review. I need your genuine best-idea evaluation — not a shallow agreement or a restatement of your original position.
 
 FINDING: [full finding text — ID, section, problem, impact, severity]
-YOUR POSITION: [GPT's original finding text or triage preview]
+YOUR ORIGINAL POSITION: [GPT's original finding text or triage preview]
 MY POSITION: [Claude's original finding text or triage assessment]
 
-I evaluated this using a structured decision framework and my recommendation is:
+I ran a structured evaluation and my recommendation is:
 
 RECOMMENDATION:
 - Pick: [Solution name]
 - Why: [2-3 sentences]
 - Trade-offs: [What's given up]
 
-Now evaluate this finding yourself using the same framework. Consider my recommendation but form your own view.
+Now you run the same evaluation. Do NOT simply agree with me to end the debate. Do NOT restate your original position without engaging with mine. Actually work through the framework below.
 
 EVALUATION FRAMEWORK:
-1. Frame the problem — restate constraints in 1-3 bullets
+1. Frame the problem — restate the actual constraints from the plan in 1-3 bullets (not abstract constraints)
 2. Generate alternatives through these lenses:
    - Eliminate: Can we avoid/defer/simplify the problem itself?
-   - Reuse: What does this codebase already do in similar situations?
-   - Standard: Is there a well-maintained library that solves this?
+   - Reuse: What does this codebase already do in similar situations? Use --search to check.
+   - Standard: Is there a well-maintained library or pattern that solves this?
    - Minimal: What's the boring, safe, smallest-change solution?
    - Strategic: Is there a higher-effort option with 3x+ long-term payoff?
-3. Compare top 3 solutions (approach, pros, cons, effort S/M/L, risk Low/Med/High)
-4. Pick one and respond with:
+3. Compare your top 3 alternatives using this table:
+   | Solution | Pros | Cons | Effort (S/M/L) | Risk (Low/Med/High) |
+4. Pick the best one
+
+Here is an example of a good response:
+
+FRAME:
+- Task 03 must complete before task 05 (explicit dependency)
+- We cannot change the external API contract (third-party)
+- The team has existing retry infrastructure in src/utils/retry.ts
+
+ALTERNATIVES:
+| Solution | Pros | Cons | Effort | Risk |
+|---|---|---|---|---|
+| Extend existing retry util | Reuses tested code, consistent behavior | Retry util doesn't support Retry-After header today | S | Low |
+| New dedicated API client class | Clean abstraction, handles all edge cases | More code to maintain | M | Med |
+| Inline retry in task 05 | Fastest to ship | Duplicates logic, hard to test | S | Med |
 
 RECOMMENDATION:
-- Pick: [Your chosen solution name]
-- Why: [2-3 sentences]
+- Pick: Extend existing retry util
+- Why: The retry.ts file already handles backoff; adding Retry-After header support is a 10-line change. This keeps all retry logic in one place and gets tested coverage for free.
+- Trade-offs: Slightly widens the scope of task 05 to include a small change in retry.ts.
+VERDICT: AGREE
+
+[End example]
+
+Now give YOUR response in this exact format:
+
+FRAME:
+[1-3 bullets]
+
+ALTERNATIVES:
+[comparison table]
+
+RECOMMENDATION:
+- Pick: [Your chosen solution]
+- Why: [2-3 sentences — engage with my reasoning, don't just restate yours]
 - Trade-offs: [What's given up]
 VERDICT: AGREE | DISAGREE
 ```

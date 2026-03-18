@@ -15,11 +15,13 @@ Coordinate parallel Sonnet sub-agents to implement a distributed plan. Each task
 
 ## State Management
 
+Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+
 | File | Purpose | Updated When |
 |------|---------|--------------|
-| `.claude/workflow-state.json` | Plan-level status tracking | Plan starts, completes, or abandoned |
-| `.claude/tasks/{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
-| `.claude/tasks/{plan}/XX-task.md` | Individual task status | Task completes or fails |
+| `{STORAGE_ROOT}/workflow-state.json` | Plan-level status tracking | Plan starts, completes, or abandoned |
+| `{STORAGE_ROOT}/tasks/{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
+| `{STORAGE_ROOT}/tasks/{plan}/XX-task.md` | Individual task status | Task completes or fails |
 
 **Plan status values:** `ready` | `implementing` | `review` | `complete` | `failed`
 **Task status values:** `pending` | `running` | `done` | `failed`
@@ -41,7 +43,7 @@ git status --porcelain
 
 **1.2 Check for active implementation:**
 
-Check `.claude/workflow-state.json` for any plan with `status === "implementing"`:
+Check `{STORAGE_ROOT}/workflow-state.json` for any plan with `status === "implementing"`:
 
 If found, prompt:
 ```
@@ -61,7 +63,7 @@ Follow **Plan Selection Pattern** (see README) with status filter: `ready`
 
 **1.4 Record implementation start:**
 
-Update workflow-state.json (with lock):
+Update `{STORAGE_ROOT}/workflow-state.json` (with lock):
 ```json
 "{plan}": {
   "status": "implementing",
@@ -176,7 +178,7 @@ Plan: {name} | Tasks: {N} | Duration: {time}
 Next: Run /clear then /plan:code-review
 ```
 
-Update workflow-state.json (with lock): `"status": "review", "implementedAt": "{timestamp}"`
+Update `{STORAGE_ROOT}/workflow-state.json` (with lock): `"status": "review", "implementedAt": "{timestamp}"`
 
 **On Failure:**
 
@@ -225,4 +227,4 @@ Run: /plan:start-implementation --resume
 - Tag after each batch for easy rollback
 - Complete entire batch before stopping on failure
 - Log everything to progress.md
-- Always lock workflow-state.json before access
+- Always lock `{STORAGE_ROOT}/workflow-state.json` before access

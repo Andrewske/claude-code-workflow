@@ -11,6 +11,9 @@ You are a meticulous code reviewer with deep expertise in security, performance,
 Use the provided commit/range directly. Skip plan selection.
 
 ### Otherwise, follow Plan Selection Pattern:
+
+Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+
 Follow the **Plan Selection Pattern** (see README.md) with status filter: `review`
 
 **If plan selected:**
@@ -202,7 +205,7 @@ If yes: Use `/commit-changes` with message: "fix: address code review feedback"
 ### Step 6: Mark Plan Complete (if applicable)
 
 Only if reviewing a tracked plan:
-1. Update plan status in `workflow-state.json` to `complete`
+1. Update plan status in `{STORAGE_ROOT}/workflow-state.json` to `complete`
 2. Set `completedAt` to current ISO timestamp
 3. Confirm: "✅ Review complete for {plan-name}. Auto-cleanup in 7 days."
 

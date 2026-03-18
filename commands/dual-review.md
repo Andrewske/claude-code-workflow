@@ -14,11 +14,13 @@ Two independent reviewers — Claude (adversarial lens) and GPT (implementation 
 
 ## Phase 1: Plan Selection
 
+Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+
 If an explicit path argument was provided, use it directly.
 
 Otherwise, follow the **Plan Selection Pattern** (see `commands/plan/README.md`) with status filter: `ready`.
 
-**Important:** If `.claude/workflow-state.json` is missing, use the fallback directory scan — scan `.claude/tasks/*/README.md` to find plans. Do NOT search `docs/` or other directories.
+**Important:** If `{STORAGE_ROOT}/workflow-state.json` is missing, use the fallback directory scan — scan `{STORAGE_ROOT}/tasks/*/README.md` to find plans. Do NOT search `docs/` or other directories.
 
 After selection, announce: "Reviewing: {plan-path}"
 
@@ -56,7 +58,7 @@ Tell the user: "Both agents are reviewing the plan independently."
 This project has the following context files in the repo root: [list files that exist]. Read them first to understand project conventions before reviewing.
 ```
 
-**Read plan content:** Read the plan's `README.md` and all task files from the plan directory (`.claude/tasks/{plan}/`).
+**Read plan content:** Read the plan's `README.md` and all task files from the plan directory (`{STORAGE_ROOT}/tasks/{plan}/`).
 
 **Size guard:** Estimate token count before including plan content. Each character ≈ 0.25 tokens; each word ≈ 1.3 tokens. If the total plan content exceeds ~50K tokens (~200K characters), summarize each task file (objective + approach + key constraints) instead of including verbatim.
 
@@ -338,7 +340,7 @@ Send via resume with `timeout: 120000`. Accumulate usage tokens.
 
 ### Debate Transcript
 
-After all debate rounds complete, save the full transcript to `.claude/tasks/{plan}/dual-review-transcript.md`:
+After all debate rounds complete, save the full transcript to `{STORAGE_ROOT}/tasks/{plan}/dual-review-transcript.md`:
 
 ```markdown
 # Dual Review Transcript — {plan-name}

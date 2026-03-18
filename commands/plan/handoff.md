@@ -26,9 +26,12 @@ You are a plan distribution orchestrator. Transform the current plan file into a
 **Abort if:** No active plan found or plan file is empty
 
 ### Phase 2: Prepare Target Directory
-1. Set target directory to `./.claude/tasks/{plan-name}/`
-2. Check if `./.claude/tasks/{plan-name}/` already exists on filesystem:
-   - If exists: Ask "Task files already exist at .claude/tasks/{plan-name}/. Overwrite? (y/n)"
+
+Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+
+1. Set target directory to `{STORAGE_ROOT}/tasks/{plan-name}/`
+2. Check if `{STORAGE_ROOT}/tasks/{plan-name}/` already exists on filesystem:
+   - If exists: Ask "Task files already exist at {STORAGE_ROOT}/tasks/{plan-name}/. Overwrite? (y/n)"
      - If yes: Remove existing directory and proceed
      - If no: Abort handoff
    - If new: Create the target directory structure
@@ -96,10 +99,10 @@ For each semantic task group:
    - `depends`: Array of task IDs that must complete before this one (empty array `[]` if no deps)
    - `files`: List of files with path and action (create/modify/delete)
 
-3. Write file to `./.claude/tasks/{plan-name}/{NN}-{task-name}.md`
+3. Write file to `{STORAGE_ROOT}/tasks/{plan-name}/{NN}-{task-name}.md`
 
 ### Phase 5: Generate README.md
-Create `./.claude/tasks/{plan-name}/README.md`:
+Create `{STORAGE_ROOT}/tasks/{plan-name}/README.md`:
 
 ```markdown
 # {Plan Name}
@@ -123,7 +126,7 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 
 **This step is critical.** Downstream commands (`/plan:review`, `/plan:start-implementation`) depend on this file to find the plan.
 
-1. Read existing `./.claude/workflow-state.json` (or create new file if missing)
+1. Read existing `{STORAGE_ROOT}/workflow-state.json` (or create new file if missing)
 2. If a plan with this name already exists in state:
    - Warn: "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
    - If yes: Update the entry, reset status to "ready"
@@ -134,7 +137,7 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 {
   "plans": {
     "{plan-name}": {
-      "path": ".claude/tasks/{plan-name}/",
+      "path": "tasks/{plan-name}/",
       "status": "ready",
       "handoffAt": "{ISO timestamp}"
     }
@@ -142,7 +145,7 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 }
 ```
 
-4. **Write the file** to `./.claude/workflow-state.json` using the Write tool
+4. **Write the file** to `{STORAGE_ROOT}/workflow-state.json` using the Write tool
 5. **Verify** the file exists and contains the plan entry by reading it back
 
 **Important:** Preserve existing plans in the state file. Only add/update the entry for the current plan.
@@ -151,15 +154,15 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 
 1. List all created files with count
 2. Verify numbering is sequential
-3. **Verify `./.claude/workflow-state.json` exists and contains the plan entry**
+3. **Verify `{STORAGE_ROOT}/workflow-state.json` exists and contains the plan entry**
 4. Output summary:
    ```
-   ✓ Plan distributed to ./.claude/tasks/{plan-name}/
+   ✓ Plan distributed to {STORAGE_ROOT}/tasks/{plan-name}/
    ✓ {N} task files + README.md created
-   ✓ Workflow state updated (.claude/workflow-state.json)
+   ✓ Workflow state updated ({STORAGE_ROOT}/workflow-state.json)
 
    Ready for implementation:
-   → .claude/tasks/{plan-name}/README.md
+   → {STORAGE_ROOT}/tasks/{plan-name}/README.md
 
    Next steps:
    1. Run /clear
@@ -172,7 +175,7 @@ Create `./.claude/tasks/{plan-name}/README.md`:
 ## ERROR HANDLING
 
 - **No plan file:** "No active plan found. Create a plan first before distribution."
-- **Target directory exists:** "Task files already exist at .claude/tasks/{plan-name}/. Overwrite? (y/n)"
+- **Target directory exists:** "Task files already exist at {STORAGE_ROOT}/tasks/{plan-name}/. Overwrite? (y/n)"
 - **Plan exists in workflow state:** "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
 - **Empty plan sections:** Flag warning but continue with available content
 

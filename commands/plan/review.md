@@ -6,11 +6,13 @@ allowed-tools: Read, Grep, Glob, Edit, Write
 
 ## Plan Selection
 
+Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+
 If explicit path argument provided, use it directly.
 
 Otherwise, follow **Plan Selection Pattern** (see README) with status filter: `ready`
 
-**Important:** If `.claude/workflow-state.json` is missing, use the fallback directory scan from the Plan Selection Pattern — scan `.claude/tasks/*/README.md` to find plans. Do NOT search `docs/` or other directories.
+**Important:** If `{STORAGE_ROOT}/workflow-state.json` is missing, use the fallback directory scan from the Plan Selection Pattern — scan `{STORAGE_ROOT}/tasks/*/README.md` to find plans. Do NOT search `docs/` or other directories.
 
 After selection, announce: "Reviewing: {plan-path}"
 

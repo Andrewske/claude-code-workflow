@@ -106,7 +106,13 @@ If codex returns an error, times out, or produces unparseable output:
 
 ## Phase 3: Claude Reviews GPT's Findings
 
-Parse the JSONL output following the same pattern as `ask-gpt`: concatenate `text` from all `item.completed` events where `type` is `agent_message`, sum `usage` from all `turn.completed` events.
+Parse the JSONL output using the dedicated parser script on the task output file (get the path from `TaskOutput`):
+
+```
+~/.claude/scripts/parse-codex-output.sh <output_file>
+```
+
+This outputs two sections: `=== USAGE ===` (JSON with `input`, `output`, `cached` token counts) and `=== RESPONSE ===` (concatenated agent message text).
 
 **Critically evaluate** GPT's findings. For each issue GPT raised:
 - **Validate**: Use the Read tool to read the flagged file at the cited line numbers. Confirm the issue exists in the actual code. Tag each finding with Claude's confidence (e.g., "Confirmed 95%", "Likely valid 80%", "Probable false positive 30%").

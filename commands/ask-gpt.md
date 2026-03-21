@@ -49,9 +49,15 @@ Examples:
 
    If the command times out, tell the user and suggest they run codex interactively for longer tasks.
 
-5. **Parse the JSONL output.** Extract from the stream:
-   - **Response**: concatenate the `text` field from all `item.completed` events where `type` is `agent_message`, in order
-   - **Usage**: sum the `usage` objects from all `turn.completed` events (add `input_tokens`, `cached_input_tokens`, and `output_tokens` across turns)
+5. **Parse the JSONL output.** Use the dedicated parser script on the task output file (get the path from `TaskOutput`):
+
+   ```
+   ~/.claude/scripts/parse-codex-output.sh <output_file>
+   ```
+
+   This outputs two sections:
+   - `=== USAGE ===` — JSON object with `input`, `output`, `cached` token counts
+   - `=== RESPONSE ===` — concatenated agent message text
 
 6. **Present the result.** Show the GPT response, then append a cost report using the pricing from the config block at the top of this file for the selected model:
 

@@ -1,41 +1,62 @@
 #!/usr/bin/env bash
-# Install commands from this repo to ~/.claude/commands/
-# Copies all .md files (preserving directory structure), skips README.md files.
+# Install commands and supporting scripts from this repo to ~/.claude/
+# - Commands (.md files) → ~/.claude/commands/
+# - Scripts (scripts/*.sh, excluding install-*.sh) → ~/.claude/scripts/
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_DIR="$SCRIPT_DIR/../commands"
-DEST_DIR="$HOME/.claude/commands"
+REPO_ROOT="$SCRIPT_DIR/.."
+CMD_SRC="$REPO_ROOT/commands"
+CMD_DEST="$HOME/.claude/commands"
+SCRIPTS_SRC="$SCRIPT_DIR"
+SCRIPTS_DEST="$HOME/.claude/scripts"
 
-if [ ! -d "$SRC_DIR" ]; then
-  echo "Error: commands directory not found at $SRC_DIR"
+if [ ! -d "$CMD_SRC" ]; then
+  echo "Error: commands directory not found at $CMD_SRC"
   exit 1
 fi
 
-mkdir -p "$DEST_DIR"
+# Install commands
+mkdir -p "$CMD_DEST"
 
 count=0
 while IFS= read -r file; do
-  # Get relative path from commands/
-  rel="${file#$SRC_DIR/}"
+  rel="${file#$CMD_SRC/}"
 
-  # Skip README.md files
   basename="$(basename "$rel")"
   if [ "$basename" = "README.md" ]; then
     continue
   fi
 
-  # Create subdirectory if needed
   dir="$(dirname "$rel")"
   if [ "$dir" != "." ]; then
-    mkdir -p "$DEST_DIR/$dir"
+    mkdir -p "$CMD_DEST/$dir"
   fi
 
-  cp "$file" "$DEST_DIR/$rel"
+  cp "$file" "$CMD_DEST/$rel"
   count=$((count + 1))
   echo "  $rel"
-done < <(find "$SRC_DIR" -name '*.md' -type f | sort)
+done < <(find "$CMD_SRC" -name '*.md' -type f | sort)
 
 echo ""
-echo "Installed $count commands to $DEST_DIR"
+echo "Installed $count commands to $CMD_DEST"
+
+# Install supporting scripts (skip install-*.sh)
+mkdir -p "$SCRIPTS_DEST"
+
+script_count=0
+while IFS= read -r file; do
+  basename="$(basename "$file")"
+
+  # Skip installer scripts themselves
+  case "$basename" in install-*) continue ;; esac
+
+  cp "$file" "$SCRIPTS_DEST/$basename"
+  chmod +x "$SCRIPTS_DEST/$basename"
+  script_count=$((script_count + 1))
+  echo "  $basename"
+done < <(find "$SCRIPTS_SRC" -name '*.sh' -type f | sort)
+
+echo ""
+echo "Installed $script_count scripts to $SCRIPTS_DEST"

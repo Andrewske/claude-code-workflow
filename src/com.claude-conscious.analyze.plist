@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.claude-conscious.analyze</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/kevinandrews/.claude/conscious/scripts/analyze_sessions.py</string>
+        <string>--days</string>
+        <string>7</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>37</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/kevinandrews/.claude/conscious/logs/analyze.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/kevinandrews/.claude/conscious/logs/analyze.err</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/kevinandrews/.claude/conscious</string>
+</dict>
+</plist>

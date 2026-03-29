@@ -1,0 +1,8 @@
+{"type":"user","message":{"role":"user","content":"hello"},"sessionId":"test-session-malformed","timestamp":"2026-03-25T09:00:00.000Z","cwd":"/Users/test/dev/proj","gitBranch":"main","version":"2.1.85","uuid":"u1","parentUuid":null,"isSidechain":false,"userType":"external","entrypoint":"cli"}
+this is not valid json at all
+{"type":"file-history-snapshot","messageId":"snap1","snapshot":{"trackedFileBackups":{}}}
+
+{"type":"assistant","message":{"role":"assistant","model":"claude-opus-4-6","content":[{"type":"text","text":"Hello! How can I help?"}],"usage":{"input_tokens":100,"output_tokens":10,"cache_creation_input_tokens":500,"cache_read_input_tokens":0},"stop_reason":"end_turn"},"uuid":"a1","parentUuid":"u1","timestamp":"2026-03-25T09:00:05.000Z","isSidechain":false,"type":"assistant","sessionId":"test-session-malformed","cwd":"/Users/test/dev/proj","version":"2.1.85","gitBranch":"main"}
+{"broken json": true, "missing closing
+{"type":"progress","data":{"type":"hook_progress"}}
+{"type":"user","message":{"role":"user","content":"thanks"},"sessionId":"test-session-malformed","timestamp":"2026-03-25T09:00:30.000Z","uuid":"u2","parentUuid":"a1","isSidechain":false,"type":"user","cwd":"/Users/test/dev/proj","version":"2.1.85","gitBranch":"main"}

@@ -74,11 +74,25 @@ with open(path, 'w') as f:
     # Remove command
     [ -f "$CLAUDE_DIR/commands/review-suggestions.md" ] && rm "$CLAUDE_DIR/commands/review-suggestions.md" && info "Removed review-suggestions command"
 
-    # Unload and remove launchd plist
-    if [ -f "$PLIST_DEST" ]; then
-        launchctl unload "$PLIST_DEST" 2>/dev/null || true
-        rm "$PLIST_DEST"
-        info "Removed daily analysis cron"
+    # Remove scheduled task (platform-specific)
+    if [ "$(uname)" = "Darwin" ]; then
+        if [ -f "$PLIST_DEST" ]; then
+            launchctl unload "$PLIST_DEST" 2>/dev/null || true
+            rm "$PLIST_DEST"
+            info "Removed daily analysis launchd job"
+        fi
+    else
+        # Linux: remove systemd user timer, fall back to crontab
+        if systemctl --user is-enabled claude-conscious-analyze.timer &>/dev/null; then
+            systemctl --user disable --now claude-conscious-analyze.timer 2>/dev/null || true
+            rm -f "$HOME/.config/systemd/user/claude-conscious-analyze.service" \
+                  "$HOME/.config/systemd/user/claude-conscious-analyze.timer"
+            systemctl --user daemon-reload 2>/dev/null || true
+            info "Removed daily analysis systemd timer"
+        elif crontab -l 2>/dev/null | grep -q "claude-conscious"; then
+            crontab -l 2>/dev/null | grep -v "claude-conscious" | crontab -
+            info "Removed daily analysis crontab entry"
+        fi
     fi
 
     # Remove analysis script
@@ -161,16 +175,56 @@ for script in backfill_telemetry.py analyze_sessions.py; do
 done
 info "Installed analysis scripts"
 
-# 6. Install daily cron via launchd
+# 6. Install daily scheduled analysis
 mkdir -p "$CONSCIOUS_DIR/logs"
-if [ -f "$SCRIPT_DIR/src/$PLIST_LABEL.plist" ]; then
-    # Update paths in plist to match current user
-    sed "s|/Users/kevinandrews|$HOME|g" "$SCRIPT_DIR/src/$PLIST_LABEL.plist" > "$PLIST_DEST"
-    launchctl unload "$PLIST_DEST" 2>/dev/null || true
-    launchctl load "$PLIST_DEST"
-    info "Installed daily analysis cron (6:37 AM)"
+CRON_CMD="python3 $SCRIPTS_DEST/analyze_sessions.py --days 7 >> $CONSCIOUS_DIR/logs/analyze.log 2>> $CONSCIOUS_DIR/logs/analyze.err"
+
+if [ "$(uname)" = "Darwin" ]; then
+    # macOS: use launchd
+    if [ -f "$SCRIPT_DIR/src/$PLIST_LABEL.plist" ]; then
+        sed "s|/Users/kevinandrews|$HOME|g" "$SCRIPT_DIR/src/$PLIST_LABEL.plist" > "$PLIST_DEST"
+        launchctl unload "$PLIST_DEST" 2>/dev/null || true
+        launchctl load "$PLIST_DEST"
+        info "Installed daily analysis via launchd (6:37 AM)"
+    else
+        warn "Plist not found, skipping daily cron"
+    fi
 else
-    warn "Plist not found, skipping daily cron"
+    # Linux: prefer systemd user timer, fall back to crontab
+    SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
+    if command -v systemctl &>/dev/null; then
+        mkdir -p "$SYSTEMD_USER_DIR"
+        cat > "$SYSTEMD_USER_DIR/claude-conscious-analyze.service" <<UNIT
+[Unit]
+Description=Claude Conscious daily session analysis
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 $SCRIPTS_DEST/analyze_sessions.py --days 7
+StandardOutput=append:$CONSCIOUS_DIR/logs/analyze.log
+StandardError=append:$CONSCIOUS_DIR/logs/analyze.err
+WorkingDirectory=$CONSCIOUS_DIR
+UNIT
+        cat > "$SYSTEMD_USER_DIR/claude-conscious-analyze.timer" <<UNIT
+[Unit]
+Description=Run Claude Conscious analysis daily at 6:37 AM
+
+[Timer]
+OnCalendar=*-*-* 06:37:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+        systemctl --user daemon-reload
+        systemctl --user enable --now claude-conscious-analyze.timer
+        info "Installed daily analysis via systemd timer (6:37 AM)"
+    elif command -v crontab &>/dev/null; then
+        ( crontab -l 2>/dev/null | grep -v "claude-conscious"; echo "37 6 * * * $CRON_CMD # claude-conscious" ) | crontab -
+        info "Installed daily analysis via crontab (6:37 AM)"
+    else
+        warn "No systemd or crontab found, skipping daily analysis schedule"
+    fi
 fi
 
 echo ""

@@ -9,14 +9,14 @@ Historical sessions get telemetry (tool counts, errors, retries, etc.) but
 no quality_score, session_topic, or topic_confidence.
 
 Usage:
-    python3 backfill_telemetry.py [--limit N] [--project SUBSTRING] [--dry-run]
+    python3 backfill_telemetry.py [--limit N] [--project SUBSTRING] [--since DAYS] [--dry-run]
 """
 
 import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -28,10 +28,14 @@ PROJECTS_DIR = Path.home() / ".claude" / "projects"
 TELEMETRY_DIR = Path.home() / ".claude" / "conscious" / "telemetry"
 
 
-def find_session_files(project_filter=None):
-    """Find all JSONL session files, optionally filtered by project name."""
+def find_session_files(project_filter=None, since_days=None):
+    """Find all JSONL session files, optionally filtered by project name and age."""
     if not PROJECTS_DIR.exists():
         return []
+
+    cutoff_ts = None
+    if since_days is not None:
+        cutoff_ts = (datetime.now(timezone.utc) - timedelta(days=since_days)).timestamp()
 
     files = []
     for project_dir in sorted(PROJECTS_DIR.iterdir()):
@@ -40,6 +44,8 @@ def find_session_files(project_filter=None):
         if project_filter and project_filter not in project_dir.name:
             continue
         for jsonl_file in sorted(project_dir.glob("*.jsonl")):
+            if cutoff_ts is not None and jsonl_file.stat().st_mtime < cutoff_ts:
+                continue
             files.append(jsonl_file)
     return files
 
@@ -72,10 +78,12 @@ def main():
     parser = argparse.ArgumentParser(description="Backfill telemetry from historical sessions")
     parser.add_argument("--limit", type=int, default=0, help="Max sessions to process (0=all)")
     parser.add_argument("--project", type=str, default=None, help="Filter by project name substring")
+    parser.add_argument("--since", type=int, default=None, help="Only process files modified in the last N days")
+    parser.add_argument("--force", action="store_true", help="Clear existing backfill data and re-parse all sessions (use after schema changes)")
     parser.add_argument("--dry-run", action="store_true", help="Count files without processing")
     args = parser.parse_args()
 
-    session_files = find_session_files(args.project)
+    session_files = find_session_files(args.project, since_days=args.since)
     print(f"Found {len(session_files)} session files")
 
     if args.dry_run:
@@ -83,10 +91,19 @@ def main():
         print(f"Total size: {total_size / 1024 / 1024:.1f} MB")
         return
 
+    TELEMETRY_DIR.mkdir(parents=True, exist_ok=True)
+
+    if args.force:
+        removed = 0
+        for bf in TELEMETRY_DIR.glob("backfill-*.jsonl"):
+            bf.unlink()
+            removed += 1
+        if removed:
+            print(f"Force mode: cleared {removed} backfill file(s)")
+
     existing_ids = load_existing_session_ids()
     print(f"Already have {len(existing_ids)} sessions in telemetry")
 
-    TELEMETRY_DIR.mkdir(parents=True, exist_ok=True)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     output_file = TELEMETRY_DIR / f"backfill-{today}.jsonl"
 

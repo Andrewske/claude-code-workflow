@@ -270,6 +270,48 @@ def detect_corrections(messages):
     return {"count": count, "keywords_matched": keywords_matched}
 
 
+def extract_file_extension_errors(messages):
+    """Map tool errors to the file extension being operated on.
+
+    Cross-references Edit/Write/Read tool_use blocks with their
+    subsequent tool_result is_error=True responses.
+    Returns: {".ts": 3, ".py": 1}
+    """
+    errors_by_ext = Counter()
+    tool_id_to_ext = {}
+
+    for msg in messages:
+        if msg.get("type") == "assistant":
+            content = msg.get("message", {}).get("content", [])
+            if not isinstance(content, list):
+                continue
+            for block in content:
+                if not isinstance(block, dict) or block.get("type") != "tool_use":
+                    continue
+                if block.get("name") not in ("Edit", "Write", "Read"):
+                    continue
+                fp = block.get("input", {}).get("file_path", "")
+                if fp:
+                    ext = Path(fp).suffix.lower()
+                    if ext:
+                        tool_id_to_ext[block.get("id", "")] = ext
+
+        elif msg.get("type") == "user":
+            content = msg.get("message", {}).get("content", [])
+            if not isinstance(content, list):
+                continue
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") != "tool_result" or not block.get("is_error"):
+                    continue
+                ext = tool_id_to_ext.get(block.get("tool_use_id", ""))
+                if ext:
+                    errors_by_ext[ext] += 1
+
+    return dict(errors_by_ext)
+
+
 def detect_retries(messages):
     """Detect consecutive same-tool sequences (retry patterns)."""
     total = 0
@@ -343,6 +385,7 @@ def build_telemetry_record(jsonl_path, source_path=None):
     errors = count_errors(messages)
     corrections = detect_corrections(messages)
     retries = detect_retries(messages)
+    file_ext_errors = extract_file_extension_errors(messages)
 
     record = {
         "schema_version": SCHEMA_VERSION,
@@ -365,6 +408,7 @@ def build_telemetry_record(jsonl_path, source_path=None):
         "skills_invoked": skills,
         "mcp_tools_used": mcp_tools,
         "bash_command_prefixes": bash_prefixes,
+        "file_extension_errors": file_ext_errors,
     }
 
     return record

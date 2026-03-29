@@ -53,22 +53,40 @@ def load_allow_list():
 
 
 def is_bash_prefix_allowed(prefix, allow_patterns):
-    """Check if a bash command prefix is covered by any allow pattern."""
+    """Check if a bash command prefix is covered by any allow pattern.
+
+    Handles both space-style patterns (Bash(git *)) and colon-style
+    patterns (Bash(git:*)) used by Claude Code's permission system.
+    """
     parts = prefix.split()
     for pattern in allow_patterns:
         if not (pattern.startswith("Bash(") and pattern.endswith(")")):
             continue
         inner = pattern[5:-1]
-        # Check if prefix matches the pattern
-        if fnmatch.fnmatch(prefix, inner):
-            return True
-        # Check with wildcard appended
-        if fnmatch.fnmatch(prefix + " anything", inner):
-            return True
-        # Check first word match for compound commands
-        if len(parts) >= 2:
-            if fnmatch.fnmatch(f"{parts[0]} {parts[1]} anything", inner):
+        # Handle colon-style patterns: Bash(git:*) means "git" followed by anything
+        # The colon acts as a command-name separator in Claude Code permissions
+        if ":" in inner:
+            colon_cmd = inner.split(":")[0]
+            colon_rest = inner[len(colon_cmd) + 1:]
+            # "git:*" covers any command starting with "git"
+            if colon_rest == "*" and parts and parts[0] == colon_cmd:
                 return True
+            # Also check fnmatch with the colon replaced by space
+            space_inner = colon_cmd + " " + colon_rest
+            if fnmatch.fnmatch(prefix, space_inner):
+                return True
+            if fnmatch.fnmatch(prefix + " anything", space_inner):
+                return True
+        else:
+            # Space-style patterns: Bash(git *)
+            if fnmatch.fnmatch(prefix, inner):
+                return True
+            if fnmatch.fnmatch(prefix + " anything", inner):
+                return True
+            # Check first word match for compound commands
+            if len(parts) >= 2:
+                if fnmatch.fnmatch(f"{parts[0]} {parts[1]} anything", inner):
+                    return True
     return False
 
 
@@ -208,10 +226,163 @@ def compute_aggregates(records):
     }
 
 
+# ── Rule suggestion heuristics ──
+
+
+LANGUAGE_PATTERNS = {
+    "tsx": (["**/*.tsx"], ["react", "jsx", "component", "hook", "use client", "use server"]),
+    "sql": (["**/*.sql"], ["sql", "postgres", "query", "migration", "schema"]),
+    "sh": (["**/*.sh"], ["bash", "shell", "set -e", "#!/bin"]),
+    "css": (["**/*.css", "**/*.scss"], ["css", "tailwind", "scss", "styled"]),
+    "go": (["**/*.go"], ["golang", "go ", "goroutine", "go run"]),
+    "rs": (["**/*.rs"], ["rust", "cargo", "ownership", "borrow"]),
+}
+
+
+def list_existing_rules():
+    """List rule file stems from ~/.claude/rules/."""
+    rules_dir = CLAUDE_DIR / "rules"
+    if not rules_dir.exists():
+        return set()
+    return {p.stem.lower() for p in rules_dir.glob("*.md")}
+
+
+def detect_claude_md_rule_candidates():
+    """Find language-specific content in CLAUDE.md that should be path-scoped rules."""
+    claude_md = CLAUDE_DIR / "CLAUDE.md"
+    if not claude_md.exists():
+        return []
+
+    content = claude_md.read_text().lower()
+    existing = list_existing_rules()
+    candidates = []
+
+    for lang, (globs, keywords) in LANGUAGE_PATTERNS.items():
+        if lang in existing:
+            continue
+        hits = sum(1 for kw in keywords if kw in content)
+        if hits >= 2:
+            candidates.append({
+                "lang": lang,
+                "hits": hits,
+                "globs": globs,
+            })
+    return candidates
+
+
+def detect_skill_project_correlations(records, min_cooccurrences=3):
+    """Find skills consistently invoked in specific project types."""
+    skill_project = defaultdict(Counter)
+    for r in records:
+        project = (r.get("project") or "").lower()
+        for skill in r.get("skills_invoked", []):
+            skill_project[skill][project] += 1
+
+    correlations = []
+    for skill, proj_counts in skill_project.items():
+        for project, count in proj_counts.items():
+            if count >= min_cooccurrences:
+                correlations.append({
+                    "skill": skill,
+                    "project": project,
+                    "count": count,
+                })
+    return correlations
+
+
+def detect_file_extension_errors(records, min_sessions=3, min_errors=5):
+    """Find file extensions with clustered errors across sessions."""
+    ext_errors = Counter()
+    ext_sessions = Counter()
+    for r in records:
+        for ext, count in r.get("file_extension_errors", {}).items():
+            ext_errors[ext] += count
+            if count > 0:
+                ext_sessions[ext] += 1
+
+    results = []
+    existing = list_existing_rules()
+    for ext, total in ext_errors.items():
+        lang = ext.lstrip(".")
+        if lang in existing:
+            continue
+        if total >= min_errors and ext_sessions[ext] >= min_sessions:
+            results.append({"ext": ext, "errors": total, "sessions": ext_sessions[ext]})
+    return results
+
+
+def generate_rule_suggestions(records, make_id, now):
+    """Generate rule-category suggestions from telemetry and CLAUDE.md analysis."""
+    suggestions = []
+
+    # Heuristic 1: CLAUDE.md content with language-specific instructions lacking rules
+    for candidate in detect_claude_md_rule_candidates():
+        lang = candidate["lang"]
+        globs = candidate["globs"]
+        suggestions.append({
+            "id": make_id(),
+            "created": now,
+            "category": "rules",
+            "priority": "medium",
+            "title": f"Create path-scoped rule for {lang.upper()} files",
+            "description": (
+                f"CLAUDE.md contains {candidate['hits']} {lang}-related instructions "
+                f"that could be scoped to {globs[0]} instead of loading every session."
+            ),
+            "evidence_count": candidate["hits"],
+            "action_type": "create_rule",
+            "action_target": str(CLAUDE_DIR / "rules" / f"{lang}.md"),
+            "action_value": json.dumps({"paths": globs}),
+            "status": "pending",
+        })
+
+    # Heuristic 2: Skills consistently invoked in specific projects
+    for corr in detect_skill_project_correlations(records):
+        suggestions.append({
+            "id": make_id(),
+            "created": now,
+            "category": "rules",
+            "priority": "low",
+            "title": f"Add /{corr['skill']} to {corr['project']} rules",
+            "description": (
+                f"Skill '{corr['skill']}' invoked {corr['count']}x in project "
+                f"'{corr['project']}'. Consider adding a reminder to project rules."
+            ),
+            "evidence_count": corr["count"],
+            "action_type": "edit_rule",
+            "action_target": corr["project"],
+            "action_value": f"Use /{corr['skill']} after changes",
+            "status": "pending",
+        })
+
+    # Heuristic 3: File extension error clustering (needs schema extension)
+    for result in detect_file_extension_errors(records):
+        ext = result["ext"]
+        lang = ext.lstrip(".")
+        suggestions.append({
+            "id": make_id(),
+            "created": now,
+            "category": "rules",
+            "priority": "high" if result["errors"] >= 10 else "medium",
+            "title": f"Recurring errors on {ext} files ({result['errors']} errors)",
+            "description": (
+                f"{result['errors']} edit/write errors on {ext} files across "
+                f"{result['sessions']} sessions. A path-scoped rule may help."
+            ),
+            "evidence_count": result["errors"],
+            "action_type": "create_rule",
+            "action_target": str(CLAUDE_DIR / "rules" / f"{lang}.md"),
+            "action_value": json.dumps({"paths": [f"**/*{ext}"]}),
+            "status": "pending",
+        })
+
+    return suggestions
+
+
 # ── Suggestion generation ──
 
 
-def generate_suggestions(aggregates, allow_patterns):
+def generate_suggestions(aggregates, allow_patterns, records=None):
     """Generate rule-based suggestions from aggregates."""
     suggestions = []
     now = datetime.now(timezone.utc).isoformat()
@@ -310,6 +481,10 @@ def generate_suggestions(aggregates, allow_patterns):
                 "action_value": "\n".join(profile_lines),
                 "status": "pending",
             })
+
+    # 4. Rule suggestions from telemetry and CLAUDE.md analysis
+    if records is not None:
+        suggestions.extend(generate_rule_suggestions(records, make_id, now))
 
     return suggestions
 
@@ -481,7 +656,7 @@ def main():
         return
 
     # Generate suggestions
-    suggestions = generate_suggestions(aggregates, allow_patterns)
+    suggestions = generate_suggestions(aggregates, allow_patterns, records)
 
     if not suggestions:
         print("\nNo suggestions generated. Everything looks good!")

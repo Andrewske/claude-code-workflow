@@ -1,11 +1,16 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["anthropic"]
+# ///
 """Claude Conscious — Stop hook for session telemetry and quality scoring.
 
 Registered as a Stop hook in Claude Code settings. Runs after every Claude
 response but rate-limits itself: only extracts telemetry once per session
 per calendar day (UTC). Multi-day sessions get daily checkpoints.
 
-Uses `claude -p --model haiku` for quality scoring (no API key management).
+Uses the Anthropic API directly for quality scoring (avoids recursive
+Stop hook invocations that `claude -p` would trigger).
 
 Input (stdin): JSON with session_id, transcript_path, cwd, etc.
 Output (stdout): JSON with optional systemMessage for display.
@@ -13,10 +18,11 @@ Output (stdout): JSON with optional systemMessage for display.
 
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+import anthropic
 
 # Resolve src/ directory for parse_session import
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -69,12 +75,30 @@ def already_checkpointed(session_id):
     return False
 
 
+def _get_api_key():
+    """Read Anthropic API key from ~/.claude/.env, falling back to env var."""
+    env_path = Path.home() / ".claude" / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                if line.startswith("ANTHROPIC_API_KEY="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return os.environ.get("ANTHROPIC_API_KEY")
+
+
 def call_haiku_for_scoring(record):
-    """Call claude CLI with haiku model for quality scoring.
+    """Call Anthropic API directly for quality scoring.
+
+    Uses the API instead of `claude -p` to avoid triggering recursive
+    Stop hooks (each `claude -p` session would fire this hook again).
 
     Returns dict with quality_score, session_topic, topic_confidence
     or None on failure.
     """
+    api_key = _get_api_key()
+    if not api_key:
+        return None
+
     tools = record.get("tools", {})
     tools_summary = ", ".join(f"{k}:{v}" for k, v in sorted(tools.items(), key=lambda x: -x[1])[:8])
     if not tools_summary:
@@ -92,34 +116,18 @@ def call_haiku_for_scoring(record):
     )
 
     try:
-        result = subprocess.run(
-            ["claude", "-p", prompt, "--model", "haiku", "--output-format", "json"],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        client = anthropic.Anthropic(
+            api_key=api_key,
+            base_url="https://api.anthropic.com",
         )
-        if result.returncode != 0:
-            return None
-
-        output = result.stdout.strip()
-        if not output:
-            return None
-
-        # claude --output-format json wraps the response; extract the text
-        try:
-            wrapper = json.loads(output)
-            # The CLI JSON output has a "result" field with the text
-            text = wrapper.get("result", output)
-            if isinstance(text, str):
-                return json.loads(text)
-            return text
-        except (json.JSONDecodeError, TypeError):
-            # Try parsing the raw output as JSON directly
-            try:
-                return json.loads(output)
-            except json.JSONDecodeError:
-                return None
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = message.content[0].text.strip()
+        return json.loads(text)
+    except Exception:
         return None
 
 
@@ -156,7 +164,7 @@ def main():
     if not record:
         sys.exit(0)
 
-    # Quality scoring via Claude CLI (haiku)
+    # Quality scoring via Anthropic API (haiku)
     scoring = call_haiku_for_scoring(record)
     if scoring:
         record["quality_score"] = scoring.get("quality_score")

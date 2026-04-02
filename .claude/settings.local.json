@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(bash /Users/kevinandrews/dev/glade/claude-code-workflow/install.sh 2>&1)"
+    ]
+  }
+}

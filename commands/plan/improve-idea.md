@@ -9,7 +9,7 @@ argument-hint: <path-to-plan>
 
 $argument provided? Use that path.
 
-Otherwise: Follow **Plan Selection Pattern** (README.md) with status filter: `ready`
+Otherwise: Follow **Plan Selection Pattern** (README.md) with status filter: `todo`
 
 After selection: Read the plan's README.md and all task files.
 

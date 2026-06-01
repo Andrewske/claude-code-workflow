@@ -10,23 +10,23 @@ Coordinate parallel Sonnet sub-agents to implement a distributed plan. Each task
 
 ## Arguments
 
-- `<path>`: Path to plan folder (optional - auto-detects from workflow-state.json)
+- `<path>`: Path to plan folder (optional — runs inside the target repo's worktree and resolves repo+slug from the branch via `kg-plan.sh resolve`)
 - `--resume`: Continue from last failure point
 
 ## State Management
 
-Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+This command runs **inside the target repo's worktree**. Resolve the plan via the `kg-plan.sh` helper (see `commands/plan/README.md`, Storage section).
 
 | File | Purpose | Updated When |
 |------|---------|--------------|
-| `{STORAGE_ROOT}/workflow-state.json` | Plan-level status tracking | Plan starts, completes, or abandoned |
-| `{STORAGE_ROOT}/tasks/{plan}/progress.md` | Human-readable execution log | Each batch starts/completes |
-| `{STORAGE_ROOT}/tasks/{plan}/XX-task.md` | Individual task status | Task completes or fails |
+| Folder location (`doing/{slug}/`) | Plan-level status | `kg-plan.sh move` on start |
+| `{PLAN_DIR}/progress.md` | Human-readable execution log | Each batch starts/completes |
+| `{PLAN_DIR}/XX-task.md` | Individual task status | Task completes or fails |
 
-**Plan status values:** `ready` | `implementing` | `review` | `complete` | `failed`
+**Plan status = folder:** `todo` → `doing` → `done`. This command moves `todo` → `doing`.
 **Task status values:** `pending` | `running` | `done` | `failed`
 
-**File locking:** Always acquire a lock on workflow-state.json before reading/writing to prevent race conditions with parallel agents. Use `flock` or equivalent.
+There is no shared JSON state and **no file locking** — the only cross-cutting mutation is the `git mv` in `kg-plan.sh move`, which is a single atomic commit.
 
 ---
 
@@ -41,38 +41,33 @@ git status --porcelain
 - If output: Run `git stash push -m "pre-impl-{plan}-{timestamp}" --include-untracked`
 - Log: "Stashed uncommitted changes. Restore with: git stash pop"
 
-**1.2 Check for active implementation:**
+**1.2 Resolve the plan and check for active implementation:**
 
-Check `{STORAGE_ROOT}/workflow-state.json` for any plan with `status === "implementing"`:
+Run `~/.claude/scripts/kg-plan.sh resolve` to get `{repo}` + `{slug}`.
 
-If found, prompt:
-```
-Plan "{name}" is currently implementing (started {date}).
+- If `plans/{repo}/doing/{slug}/` already exists, this plan is mid-implementation. Prompt:
+  ```
+  Plan "{slug}" is already in doing/ (in progress).
 
-1. Resume {name}
-2. Cancel
+  1. Resume {slug}
+  2. Cancel
 
-Select (1-2):
-```
-- **Option 1**: Use `--resume` mode for that plan
-- **Option 2**: Abort
+  Select (1-2):
+  ```
+  - **Option 1**: Use `--resume` mode (skip the move in 1.4 — it's already in `doing/`)
+  - **Option 2**: Abort
 
 **1.3 Select plan:**
 
-Follow **Plan Selection Pattern** (see README) with status filter: `ready`
+Follow the **Plan Selection Pattern** (see README) with status filter: `todo`. `{PLAN_DIR}` is the selected `todo/{slug}/` path.
 
 **1.4 Record implementation start:**
 
-Update `{STORAGE_ROOT}/workflow-state.json` (with lock):
-```json
-"{plan}": {
-  "status": "implementing",
-  "preImplCommit": "{git rev-parse HEAD}",
-  "startedAt": "{ISO timestamp}"
-}
+Move the plan into `doing/` (this is the atomic state transition + audit commit):
 ```
-
-Also write `preImplCommit` to progress.md header for resilience.
+~/.claude/scripts/kg-plan.sh move {repo} {slug} todo doing
+```
+`{PLAN_DIR}` is now `plans/{repo}/doing/{slug}/`. Write `preImplCommit` (`git rev-parse HEAD` in the target repo) to the `progress.md` header for resilience.
 
 ---
 
@@ -178,7 +173,7 @@ Plan: {name} | Tasks: {N} | Duration: {time}
 Next: Run /clear then /plan:code-review
 ```
 
-Update `{STORAGE_ROOT}/workflow-state.json` (with lock): `"status": "review", "implementedAt": "{timestamp}"`
+The plan stays in `doing/` (doing = anything in progress, including awaiting review). Record completion in `{PLAN_DIR}/progress.md` (append an `implementedAt: {timestamp}` line to the header). It moves to `done/` only after the PR merges.
 
 **On Failure:**
 
@@ -227,4 +222,4 @@ Run: /plan:start-implementation --resume
 - Tag after each batch for easy rollback
 - Complete entire batch before stopping on failure
 - Log everything to progress.md
-- Always lock `{STORAGE_ROOT}/workflow-state.json` before access
+- The plan's status is its folder — never write a JSON state file

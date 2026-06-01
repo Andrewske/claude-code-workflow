@@ -12,12 +12,10 @@ Use the provided commit/range directly. Skip plan selection.
 
 ### Otherwise, follow Plan Selection Pattern:
 
-Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
-
-Follow the **Plan Selection Pattern** (see README.md) with status filter: `review`
+Follow the **Plan Selection Pattern** (see `commands/plan/README.md`, Storage + Plan Selection Pattern sections) with status filter: `doing`. It resolves the plan from your branch via `kg-plan.sh`.
 
 **If plan selected:**
-1. Read `preImplCommit` from state file (fallback: plan's progress.md header)
+1. Read `preImplCommit` from the plan's `progress.md` header
 2. Run: `git rev-list {preImplCommit}..HEAD --count`
 3. If count > 0 → Review entire range
 4. If count = 0 → "No new commits since implementation started for {plan-name}"
@@ -202,12 +200,11 @@ Commit these fixes? (y/n)
 
 If yes: Use `/commit-changes` with message: "fix: address code review feedback"
 
-### Step 6: Mark Plan Complete (if applicable)
+### Step 6: Plan Status (if applicable)
 
-Only if reviewing a tracked plan:
-1. Update plan status in `{STORAGE_ROOT}/workflow-state.json` to `complete`
-2. Set `completedAt` to current ISO timestamp
-3. Confirm: "✅ Review complete for {plan-name}. Auto-cleanup in 7 days."
+The plan stays in `doing/` — code review does not move it. The folder moves `doing → done` manually after the PR merges (out of scope here; `kg-plan.sh move {repo} {slug} doing done`).
+
+Confirm: "✅ Code review complete for {slug}. Plan remains in doing/ until the PR merges."
 
 **STOP HERE. Do NOT start implementation or make further changes.** Tell the user:
 

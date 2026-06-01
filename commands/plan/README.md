@@ -16,68 +16,67 @@ Each `/clear` resets context for fresh-eyes review. This is intentional - the re
 | Command | Purpose | Status Filter |
 |---------|---------|---------------|
 | `/plan:discuss` | Requirements discovery with structured handoff | - |
-| `/plan:handoff` | Transform plan into task files for sub-agents | - |
-| `/plan:review` | Adversarial technical review | `ready` |
-| `/plan:improve-idea` | Brainstorm through 4 lenses | `ready` |
+| `/plan:handoff` | Transform plan into task files for sub-agents | - (creates in `todo`) |
+| `/plan:review` | Adversarial technical review | `todo` |
+| `/plan:improve-idea` | Brainstorm through 4 lenses | `todo` |
 | `/plan:best-idea` | Evaluate options, recommend solution | (inline interrupt) |
-| `/plan:start-implementation` | Orchestrate parallel Sonnet sub-agents | `ready` |
-| `/plan:code-review` | Review implementation commits | `review` |
+| `/plan:start-implementation` | Orchestrate parallel Sonnet sub-agents | `todo` → moves to `doing` |
+| `/plan:code-review` | Review implementation commits | `doing` |
 
-## Storage Root
+## Storage
 
-All workflow state and task files are stored outside the project directory to avoid `.claude/` permission prompts:
+Plans live in a dedicated local git repo, the `kg` knowledge repo:
 
 ```
-STORAGE_ROOT = ~/.claude-workflow/projects/{dir-name}/
+KG_ROOT = ~/dev/kg
 ```
 
-Where `{dir-name}` is the basename of the current working directory (e.g., `noodle-api`, `claude-code-workflow`). If the directory doesn't exist, create it (including parents).
+Plan folders are laid out by **repo** and **status**, with status encoded by folder location:
 
-At execution start, print the resolved path: `Using storage: ~/.claude-workflow/projects/{dir-name}/`
-
-## State Management
-
-All commands share `{STORAGE_ROOT}/workflow-state.json`:
-
-```json
-{
-  "plans": {
-    "my-plan": {
-      "path": "tasks/my-plan/",
-      "status": "ready|implementing|review|complete|failed",
-      "preImplCommit": "abc123",
-      "handoffAt": "ISO timestamp",
-      "completedAt": "ISO timestamp"
-    }
-  }
-}
+```
+~/dev/kg/
+  plans/
+    {repo}/                  # e.g. noodle-api — from `git remote get-url origin`
+      todo/   {slug}/  README.md  NN-task.md ...
+      doing/  {slug}/  README.md  NN-task.md  progress.md ...
+      done/   {slug}/  ...        # moved here manually after the PR merges
+  initiatives/               # durable KB layer (rest of KB system lands here later)
 ```
 
-**Status lifecycle:** `ready` → `implementing` → `review` → `complete` | `failed`
+- **`{slug}`** (`issue-id-title`): the current branch with its leading `user/` prefix stripped, e.g. `kevin/dev-23587-switch-firm-x` → `dev-23587-switch-firm-x`.
+- **`{repo}`**: parsed from the cwd's `origin` remote (`glade-ai/noodle-api` → `noodle-api`).
+- **Status = folder**: `todo` / `doing` / `done`. There is **no `workflow-state.json`**.
 
-Completed entries auto-delete after 30 days. Task files in `{STORAGE_ROOT}/tasks/` are preserved as audit trail.
+All path/slug/move logic is centralized in the **`kg-plan.sh`** helper (installed to `~/.claude/scripts/kg-plan.sh`). Commands call it rather than embedding bash:
+
+| Invocation | Does |
+|------------|------|
+| `kg-plan.sh resolve` | from cwd, prints `REPO`, `BRANCH`, `SLUG`, `LINEAR_ID`, and the `TODO_DIR`/`DOING_DIR`/`DONE_DIR` paths. **Exits non-zero** if not in a git repo, detached HEAD, no origin, or the branch has no `<team>-<num>-` ticket pattern (e.g. `feat/…`, `fix-…`). |
+| `kg-plan.sh create-todo <repo> <slug>` | auto-inits `kg` if needed; **collision-guarded** (fails if `<slug>` already exists in `todo`/`doing`/`done`); prints the new `todo/<slug>/` path. |
+| `kg-plan.sh move <repo> <slug> <from> <to>` | `git mv` between status dirs + commit (`plan: move <slug> <from>-><to>`). Refuses to clobber an existing target. |
+| `kg-plan.sh list <repo> <status>` | prints slug dirs under `plans/<repo>/<status>/`. |
+
+## Status
+
+**Lifecycle:** `todo` → `doing` → `done`. `doing` means *anything in progress* — it absorbs the old `implementing` and `review` states. `done` is reached only after the PR merges (currently a manual `kg-plan.sh move … doing done`).
+
+**Audit trail:** every transition is a commit in `~/dev/kg`. Use `git -C ~/dev/kg log` to see when a plan moved between states — this replaces the old `workflow-state.json` timestamps.
 
 ## Plan Selection Pattern
 
 Used by: `/plan:review`, `/plan:improve-idea`, `/plan:start-implementation`, `/plan:code-review`
 
-1. Read `{STORAGE_ROOT}/workflow-state.json`
-   - **If file is missing:** fall back to directory scan (step 1b)
-   - Auto-cleanup: delete entries where `completedAt` > 30 days ago
-   - Filter by required status (varies by command)
-   - If 0 matching: fall back to directory scan (step 1b)
-   - If 1 matching: auto-select, announce selection
-   - If multiple: show selector with names and timestamps
-
-1b. **Fallback: Directory Scan** (when workflow-state.json is missing or has no matches)
-   - Scan `{STORAGE_ROOT}/tasks/*/README.md` for task directories
-   - If 0 found: error "No plans found. Run /plan:handoff first."
-   - If 1 found: auto-select, announce selection
-   - If multiple found: show selector with directory names
-   - **After selection, create/update `{STORAGE_ROOT}/workflow-state.json`** with the selected plan entry (status based on command's filter, e.g., `ready`)
-
-2. Verify selected plan path exists
-   - If missing: offer to remove stale entry, re-run selection
+1. If an explicit path argument is provided, use it directly.
+2. Run `kg-plan.sh resolve`.
+   - **On success:** `{repo}` + `{slug}` are known. Look for `plans/{repo}/{status}/{slug}/` where `{status}` is the command's filter (varies by command).
+     - If it exists: auto-select, announce `Selected: {path}`.
+     - If it doesn't: the plan may be in another status — report where the slug currently lives (via the status dirs), or fall through to step 3.
+   - **On non-zero exit** (no ticket-bearing branch, detached, no origin): fall through to step 3.
+3. **Fallback selector:** `kg-plan.sh list {repo} {status}` (use `{repo}` from resolve if available, else ask the user which repo).
+   - 0 found: error `No plans in {status}. Run /plan:handoff first.`
+   - 1 found: auto-select, announce.
+   - Multiple: show a selector with the slug names.
+4. Verify the selected plan path exists before proceeding.
 
 ## Shared Definitions
 

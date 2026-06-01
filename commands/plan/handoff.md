@@ -27,14 +27,18 @@ You are a plan distribution orchestrator. Transform the current plan file into a
 
 ### Phase 2: Prepare Target Directory
 
-Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+Resolve the storage location via the `kg-plan.sh` helper (see `commands/plan/README.md`, Storage section).
 
-1. Set target directory to `{STORAGE_ROOT}/tasks/{plan-name}/`
-2. Check if `{STORAGE_ROOT}/tasks/{plan-name}/` already exists on filesystem:
-   - If exists: Ask "Task files already exist at {STORAGE_ROOT}/tasks/{plan-name}/. Overwrite? (y/n)"
-     - If yes: Remove existing directory and proceed
-     - If no: Abort handoff
-   - If new: Create the target directory structure
+1. Run `~/.claude/scripts/kg-plan.sh resolve`.
+   - **On success:** read `REPO` and `SLUG` from the output. The `{slug}` is the implementation plan's identity (it ties to the Linear ticket), **not** the Claude plan-file name.
+   - **On non-zero exit** (branch has no `<team>-<num>-` ticket, detached HEAD, or no origin): every plan must map to a Linear ticket. Try a Linear lookup for the current branch; if that fails, ask the user for the `{repo}` and the ticket `{slug}` (`<team>-<num>-<title>`). Do not invent a slug from the plan-file name.
+2. Create the target via `~/.claude/scripts/kg-plan.sh create-todo {repo} {slug}`. It prints the path `{KG_ROOT}/plans/{repo}/todo/{slug}/`.
+   - **If it exits non-zero with `EXISTS={status}`:** a plan for this slug already lives under `{status}/`. Ask: "Plan '{slug}' already exists under {status}/. Overwrite? (y/n)"
+     - If yes and `{status}` is `todo`: remove the existing `todo/{slug}/` contents and recreate.
+     - If yes and `{status}` is `doing`/`done`: warn this plan is already in progress; only proceed if the user confirms re-handoff (move it back to `todo` first via `kg-plan.sh move`).
+     - If no: abort handoff.
+
+Print the resolved target path.
 
 ### Phase 3: Semantic Task Parsing
 Parse the plan using **semantic grouping logic**:
@@ -99,12 +103,19 @@ For each semantic task group:
    - `depends`: Array of task IDs that must complete before this one (empty array `[]` if no deps)
    - `files`: List of files with path and action (create/modify/delete)
 
-3. Write file to `{STORAGE_ROOT}/tasks/{plan-name}/{NN}-{task-name}.md`
+3. Write file to `{PLAN_DIR}/{NN}-{task-name}.md` (where `{PLAN_DIR}` is the `create-todo` path from Phase 2, i.e. `{KG_ROOT}/plans/{repo}/todo/{slug}/`)
 
 ### Phase 5: Generate README.md
-Create `{STORAGE_ROOT}/tasks/{plan-name}/README.md`:
+Create `{PLAN_DIR}/README.md`:
 
 ```markdown
+---
+slug: {slug}
+linear: {LINEAR_ID}
+repo: {repo}
+initiative:            # optional link to a KB initiative (initiatives/<slug>); leave blank for now
+---
+
 # {Plan Name}
 
 ## Overview
@@ -122,61 +133,41 @@ Create `{STORAGE_ROOT}/tasks/{plan-name}/README.md`:
 {External dependencies, prerequisites, or setup requirements}
 ```
 
-### Phase 6: Update Workflow State (REQUIRED — do not skip)
+### Phase 6: Commit the Plan to the kg Repo (REQUIRED — do not skip)
 
-**This step is critical.** Downstream commands (`/plan:review`, `/plan:start-implementation`) depend on this file to find the plan.
+The plan folder's location under `todo/` is its status. Committing it records the handoff in `kg` git history (there is no `workflow-state.json`).
 
-1. Read existing `{STORAGE_ROOT}/workflow-state.json` (or create new file if missing)
-2. If a plan with this name already exists in state:
-   - Warn: "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
-   - If yes: Update the entry, reset status to "ready"
-   - If no: Abort handoff
-3. Add/update entry for this plan:
-
-```json
-{
-  "plans": {
-    "{plan-name}": {
-      "path": "tasks/{plan-name}/",
-      "status": "ready",
-      "handoffAt": "{ISO timestamp}"
-    }
-  }
-}
-```
-
-4. **Write the file** to `{STORAGE_ROOT}/workflow-state.json` using the Write tool
-5. **Verify** the file exists and contains the plan entry by reading it back
-
-**Important:** Preserve existing plans in the state file. Only add/update the entry for the current plan.
+1. `git -C ~/dev/kg add plans/{repo}/todo/{slug}`
+2. `git -C ~/dev/kg commit -m "plan: add {slug} (todo)"`
+3. **Verify** the commit landed: `git -C ~/dev/kg log --oneline -1` shows the `plan: add {slug}` entry.
 
 ### Phase 7: Summary
 
 1. List all created files with count
 2. Verify numbering is sequential
-3. **Verify `{STORAGE_ROOT}/workflow-state.json` exists and contains the plan entry**
+3. **Verify the `plan: add {slug} (todo)` commit exists in `~/dev/kg`**
 4. Output summary:
    ```
-   ✓ Plan distributed to {STORAGE_ROOT}/tasks/{plan-name}/
+   ✓ Plan distributed to {PLAN_DIR}
    ✓ {N} task files + README.md created
-   ✓ Workflow state updated ({STORAGE_ROOT}/workflow-state.json)
+   ✓ Committed to kg (plan: add {slug} (todo))
 
    Ready for implementation:
-   → {STORAGE_ROOT}/tasks/{plan-name}/README.md
+   → {PLAN_DIR}/README.md
 
    Next steps:
    1. Run /clear
    2. Run /plan:review
-      (auto-detects plan, or shows selector if multiple ready plans)
+      (auto-detects plan from your branch, or shows a selector)
    ```
 
-**If workflow-state.json was NOT created, stop and fix it before showing the summary.**
+**If the kg commit did NOT land, stop and fix it before showing the summary.**
 
 ## ERROR HANDLING
 
 - **No plan file:** "No active plan found. Create a plan first before distribution."
-- **Target directory exists:** "Task files already exist at {STORAGE_ROOT}/tasks/{plan-name}/. Overwrite? (y/n)"
-- **Plan exists in workflow state:** "Plan '{plan-name}' already exists in workflow state with status '{status}'. Overwrite? (y/n)"
+- **No ticket-bearing branch:** "Branch has no Linear ticket pattern. Provide the repo and ticket slug (`<team>-<num>-<title>`)."
+- **Plan already exists** (`create-todo` reports `EXISTS={status}`): "Plan '{slug}' already exists under {status}/. Overwrite? (y/n)"
 - **Empty plan sections:** Flag warning but continue with available content
 
 ## CONSTRAINTS

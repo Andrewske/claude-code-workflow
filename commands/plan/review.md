@@ -1,18 +1,14 @@
 ---
 description: Deep technical review of planning documents - find logic gaps, flawed assumptions, and better approaches
-argument-hint: [<path>] (optional - auto-detects from workflow state)
+argument-hint: [<path>] (optional - auto-detects from branch/worktree)
 allowed-tools: Read, Grep, Glob, Edit, Write
 ---
 
 ## Plan Selection
 
-Compute `STORAGE_ROOT` per `commands/plan/README.md`, Storage Root section. Print the resolved path.
+If an explicit path argument is provided, use it directly.
 
-If explicit path argument provided, use it directly.
-
-Otherwise, follow **Plan Selection Pattern** (see README) with status filter: `ready`
-
-**Important:** If `{STORAGE_ROOT}/workflow-state.json` is missing, use the fallback directory scan from the Plan Selection Pattern — scan `{STORAGE_ROOT}/tasks/*/README.md` to find plans. Do NOT search `docs/` or other directories.
+Otherwise, follow the **Plan Selection Pattern** (see `commands/plan/README.md`, Storage + Plan Selection Pattern sections) with status filter: `todo`. It resolves the plan from your branch via `kg-plan.sh`, falling back to a selector over `plans/{repo}/todo/`.
 
 After selection, announce: "Reviewing: {plan-path}"
 

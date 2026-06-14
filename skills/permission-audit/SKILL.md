@@ -46,11 +46,25 @@ Based on the report, suggest concrete edits to:
 
 #### Safety rules
 
-Always keep destructive operations in the `"ask"` list:
-- `Bash(rm *)`, `Bash(rm -*)`
+**HARD RULE — push must always ask.** Never suggest any allow pattern that could shadow these ask rules:
 - `Bash(git push *)`, `Bash(git push)`
+- `Bash(gh pr create *)`, `Bash(gh pr merge *)`, `Bash(gh pr close *)`, `Bash(gh pr edit *)`, `Bash(gh pr ready *)`
+
+This means **never suggest umbrella patterns**:
+- ❌ `Bash(gh *)` — shadows `gh pr create`, `gh pr merge`, etc.
+- ❌ `Bash(git *)` — shadows `git push`
+- ❌ `Bash(/usr/bin/git *)`, `Bash(git -C * push *)` — backdoor paths to push
+- ✅ `Bash(gh pr view *)`, `Bash(gh pr list *)`, `Bash(gh issue list *)` — specific read subcommands only
+
+**Shell-execution wrappers are backdoors.** `Bash(bash *)`, `Bash(eval *)`, `Bash(source *)`, `Bash(sh -c *)`, `Bash(codex *)`, `Bash(claude *)` can run `git push` indirectly. Flag this when suggesting; do not suggest umbrella shell wrappers without explicit acknowledgment.
+
+**Other destructive operations to keep in `"ask"`:**
+- `Bash(rm *)`, `Bash(rm -*)`
 - `Bash(git reset *)`, `Bash(git clean *)`
-- MCP write operations that affect shared state (Slack messages, issue creation, etc.)
+- `Bash(git push --force*)`, `Bash(git push -f*)`
+- MCP write operations that affect shared state (Slack messages, public issue creation, dashboard mutations)
+
+**Before suggesting any new rule, check:** does it match a forbidden pattern listed above? If yes, drop it from suggestions and tell the user why.
 
 ### Step 4: Apply changes
 

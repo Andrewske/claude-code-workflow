@@ -1,0 +1,134 @@
+
+src/services/workflowCompiledDocument/buildDebtorDataFromQuestionnaire.spec.ts
+  @@ -2,6 +2,7 @@ import { expect } from 'chai';
+  +import { fixtures } from '../../../test';
+   import { buildDebtorDataFromQuestionnaire } from './buildDebtorDataFromQuestionnaire';
+   
+   describe('buildDebtorDataFromQuestionnaire', function () {
+  @@ -364,4 +365,107 @@ describe('buildDebtorDataFromQuestionnaire', function () {
+  +
+  +  describe('attorney data', function () {
+  +    beforeEach(function () {
+  +      (questionnairesInterface.getQuestionnaireResponses as SinonStub).returns({
+  +        items: [],
+  +        numItems: 0,
+  +        numPages: 1,
+  +        page: 1,
+  +        perPage: 100_000,
+  +      });
+  +    });
+  +
+  +    const setUpWorkflow = async (
+  +      attorneyOpts: Partial<{
+  +        email: string;
+  +        daytimePhoneNumber: string | null;
+  +        mobilePhoneNumber: string | null;
+  +      }> | null,
+  +    ): Promise<string> => {
+  +      const creator = await fixtures.creator();
+  +      const person = await fixtures.person();
+  +      const workflow = await fixtures.workflow({ creatorId: creator.id });
+  +      const personAttorneyId = attorneyOpts
+  +        ? (await fixtures.personAttorney({
+  +          creatorId: creator.id,
+  +          personId: person.id,
+  +          ...attorneyOpts,
+  +        })).id
+  +        : null;
+  +      const userWorkflow = await fixtures.userWorkflow({
+  +        personAttorneyId,
+  +        personId: person.id,
+  +        workflowId: workflow.id,
+  +      });
+  +      const formRequest = await fixtures.formRequest({
+  +        creatorId: creator.id,
+  +        personId: person.id,
+  +        userWorkflowId: userWorkflow.id,
+  +      });
+  +      return formRequest.formReferenceId;
+  +    };
+  +
+  +    it('populates attorneyEmail and attorneyPhone (daytime) when both phones are present', async function () {
+  +      const questionnaireId = await setUpWorkflow({
+  +        daytimePhoneNumber: '215-555-0100',
+  +        email: 'attorney@example.com',
+  +        mobilePhoneNumber: '215-555-0999',
+  +      });
+  +
+  +      const result = await buildDebtorDataFromQuestionnaire({ questionnaireId });
+  +
+  +      expect(result.attorneyEmail).to.equal('attorney@example.com');
+  +      expect(result.attorneyPhone).to.equal('215-555-0100');
+  +    });
+  +
+  +    it('falls back to mobilePhoneNumber when daytimePhoneNumber is null', async function () {
+  +      const questionnaireId = await setUpWorkflow({
+  +        daytimePhoneNumber: null,
+  +        email: 'attorney@example.com',
+  +        mobilePhoneNumber: '215-555-0200',
+  +      });
+  +
+  +      const result = await buildDebtorDataFromQuestionnaire({ questionnaireId });
+  +
+  +      expect(result.attorneyEmail).to.equal('attorney@example.com');
+  +      expect(result.attorneyPhone).to.equal('215-555-0200');
+  +    });
+  +
+  +    it('falls back to mobilePhoneNumber when daytimePhoneNumber is empty or whitespace', async function () {
+  +      const questionnaireId = await setUpWorkflow({
+  +        daytimePhoneNumber: '   ',
+  +        email: 'attorney@example.com',
+  +        mobilePhoneNumber: '215-555-0300',
+  +      });
+  +
+  +      const result = await buildDebtorDataFromQuestionnaire({ questionnaireId });
+  +
+  +      expect(result.attorneyEmail).to.equal('attorney@example.com');
+  +      expect(result.attorneyPhone).to.equal('215-555-0300');
+  +    });
+  +
+  +    it('omits attorneyPhone when both phone fields are null', async function () {
+  +      const questionnaireId = await setUpWorkflow({
+  +        daytimePhoneNumber: null,
+  +        email: 'attorney@example.com',
+  +        mobilePhoneNumber: null,
+  +      });
+  +
+  +      const result = await buildDebtorDataFromQuestionnaire({ questionnaireId });
+  +
+  +      expect(result.attorneyEmail).to.equal('attorney@example.com');
+  +      expect(result.attorneyPhone).to.equal(undefined);
+  +    });
+  +
+  +    it('omits both attorney fields when no personAttorney is linked to the userWorkflow', async function () {
+  +      const questionnaireId = await setUpWorkflow(null);
+  +
+  +      const result = await buildDebtorDataFromQuestionnaire({ questionnaireId });
+  +
+  +      expect(result.attorneyEmail).to.equal(undefined);
+  ... (3 lines truncated)
+  +104 -0
+
+src/services/workflowCompiledDocument/buildDebtorDataFromQuestionnaire.ts
+  @@ -1034,6 +1034,13 @@ export const buildDebtorDataFromQuestionnaire = async (params: {
+  +      if (personAttorney.email) {
+  +        debtorData.attorneyEmail = personAttorney.email;
+  +      }
+  +      const attorneyPhone = personAttorney.daytimePhoneNumber?.trim() || personAttorney.mobilePhoneNumber?.trim();
+  +      if (attorneyPhone) {
+  +        debtorData.attorneyPhone = attorneyPhone;
+  +      }
+       } else {
+         log.warn({ userWorkflowId }, 'No personAttorney on user workflow for debtor data');
+       }
+  +7 -0
+
+src/typings/api-models.ts
+  @@ -237,6 +237,8 @@ export interface DebtorData {
+  +  attorneyEmail?: string;
+  +  attorneyPhone?: string;
+   
+     isDisposableIncomeDetermined?: 'y' | 'n';
+     commitmentPeriod?: '3y' | '5y';
+  +2 -0
+[full diff: rtk git diff --no-compact]

@@ -74,7 +74,6 @@ def already_checkpointed(session_id):
         pass
     return False
 
-
 def _get_api_key():
     """Read Anthropic API key from ~/.claude/.env, falling back to env var."""
     env_path = Path.home() / ".claude" / ".env"
@@ -84,6 +83,7 @@ def _get_api_key():
                 if line.startswith("ANTHROPIC_API_KEY="):
                     return line.split("=", 1)[1].strip().strip('"').strip("'")
     return os.environ.get("ANTHROPIC_API_KEY")
+    
 
 
 def call_haiku_for_scoring(record):

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Find and optionally delete recursive scoring-only Claude Code sessions.
+"""Find and optionally delete junk Claude Code sessions created by Stop hooks.
 
-The conscious_hook.py Stop hook previously used `claude -p` for quality
-scoring, which created new sessions that triggered the hook again — a
-recursive loop producing thousands of junk conversation logs.
+Two known sources:
+  1. Scoring sessions — conscious_hook.py previously used `claude -p` for
+     quality scoring, creating recursive sessions.
+  2. Summarizer sessions — episodic-memory plugin uses `claude -p` (via
+     claude-agent-sdk `query()`) to generate conversation summaries.
 
-This script identifies those sessions (where the only user message is
-the scoring prompt) and prompts before deleting.
+Both produce sessions where the only user message is an automated prompt,
+triggering Stop hooks again and polluting the conversation tracker dashboard.
 
 Usage:
     cleanup-scoring-sessions.py          # interactive: find + prompt to delete
@@ -19,16 +21,19 @@ import json
 import sys
 from pathlib import Path
 
-SCORING_MARKER = "You are scoring a Claude Code session"
+JUNK_MARKERS = [
+    "You are scoring a Claude Code session",
+    "This summary will be shown in a list",
+]
 
 
-def find_scoring_sessions(projects_dir):
-    """Find session files that are scoring-only (no real user messages)."""
-    scoring_files = []
+def find_junk_sessions(projects_dir):
+    """Find session files that are junk-only (no real user messages)."""
+    junk_files = []
     for jsonl_path in projects_dir.rglob("*.jsonl"):
         try:
             lines = jsonl_path.read_text().strip().split("\n")
-            has_scoring_prompt_as_user = False
+            matched_marker = None
             has_real_user_messages = False
             for line in lines:
                 if not line.strip():
@@ -45,20 +50,24 @@ def find_scoring_sessions(projects_dir):
                             for b in content
                             if isinstance(b, dict)
                         )
-                    if SCORING_MARKER in str(content):
-                        has_scoring_prompt_as_user = True
-                    elif isinstance(content, str) and len(content.strip()) > 0:
-                        has_real_user_messages = True
+                    content_str = str(content)
+                    for marker in JUNK_MARKERS:
+                        if marker in content_str:
+                            matched_marker = marker
+                            break
+                    else:
+                        if content_str.strip():
+                            has_real_user_messages = True
 
-            if has_scoring_prompt_as_user and not has_real_user_messages:
-                scoring_files.append(jsonl_path)
+            if matched_marker and not has_real_user_messages:
+                junk_files.append((jsonl_path, matched_marker))
         except Exception:
             continue
-    return scoring_files
+    return junk_files
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Clean up recursive scoring session logs")
+    parser = argparse.ArgumentParser(description="Clean up episodic-memory summarizer session logs")
     parser.add_argument("--dry-run", action="store_true", help="List files without deleting")
     parser.add_argument("--yes", "-y", action="store_true", help="Delete without prompting")
     args = parser.parse_args()
@@ -68,20 +77,32 @@ def main():
         print("No projects directory found at", projects_dir)
         sys.exit(1)
 
-    print("Scanning for scoring-only sessions...")
-    files = find_scoring_sessions(projects_dir)
+    print("Scanning for junk sessions (scoring + summarizer)...")
+    results = find_junk_sessions(projects_dir)
 
-    if not files:
-        print("No scoring-only sessions found.")
+    if not results:
+        print("No junk sessions found.")
         sys.exit(0)
 
-    total_bytes = sum(f.stat().st_size for f in files)
+    paths = [f for f, _ in results]
+    total_bytes = sum(f.stat().st_size for f in paths)
     total_mb = total_bytes / (1024 * 1024)
-    print(f"Found {len(files)} scoring-only sessions ({total_mb:.1f} MB)")
+    total_chars = sum(len(f.read_text()) for f in paths)
+    total_tokens = total_chars // 4
+
+    # Count by type
+    type_counts: dict[str, int] = {}
+    for _, marker in results:
+        label = "scoring" if "scoring" in marker.lower() else "summarizer"
+        type_counts[label] = type_counts.get(label, 0) + 1
+    breakdown = ", ".join(f"{v} {k}" for k, v in type_counts.items())
+    print(f"Found {len(results)} junk sessions ({breakdown}) — {total_mb:.1f} MB, ~{total_tokens:,} tokens")
 
     if args.dry_run:
-        for f in files:
-            print(f"  {f}")
+        for f, marker in results:
+            label = "scoring" if "scoring" in marker.lower() else "summarizer"
+            chars = len(f.read_text())
+            print(f"  [{label}]  {f}  (~{chars // 4:,} tokens)")
         sys.exit(0)
 
     if not args.yes:
@@ -91,14 +112,14 @@ def main():
             sys.exit(0)
 
     deleted = 0
-    for f in files:
+    for f in paths:
         try:
             f.unlink()
             deleted += 1
         except OSError as e:
             print(f"  Failed to delete {f}: {e}", file=sys.stderr)
 
-    print(f"Deleted {deleted}/{len(files)} files ({total_mb:.1f} MB freed)")
+    print(f"Deleted {deleted}/{len(results)} files ({total_mb:.1f} MB freed)")
 
 
 if __name__ == "__main__":

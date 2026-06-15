@@ -280,11 +280,11 @@ For each issue found in this section, present a decision brief individually. One
 
 **STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Writing the recommendation as chat prose without ending your turn is the failure mode this gate exists to prevent.
 
-## Outside Voice — Independent Plan Challenge (optional, recommended)
+## Outside Voice — Independent Plan Challenge (always run)
 
-After all review sections are complete, offer an independent second opinion from a
-different AI system. Two models agreeing on a plan is stronger signal than one model's
-thorough review.
+After all review sections are complete, ALWAYS run an independent second opinion from a
+different AI system — do NOT ask whether to run it. Two models agreeing on a plan is
+stronger signal than one model's thorough review.
 
 **Check tool availability:**
 
@@ -292,30 +292,13 @@ thorough review.
 command -v codex >/dev/null 2>&1 && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
 
-Present a decision brief:
+Print "Running outside voice…" and proceed. If the result is `CODEX_NOT_AVAILABLE`, fall
+back to the Claude subagent path described below. Never gate *running* it on user
+confirmation — only the *integration* of its findings into the plan is gated (see the
+Outside Voice Integration Rule).
 
-### D<N> · Get an outside voice on this plan?
-
-All review sections are complete.
-
-**Plain English** — A different AI gives a brutally honest, independent challenge — logical gaps, feasibility risks, blind spots. Takes ~2 minutes. Skipping means relying on a single model's review.
-
-**Recommend → A** · two models agreeing is stronger signal than one · A 9/10 vs B 7/10
-
-**A) Get the outside voice** ✅ pick
-- ✅ Independent model catches structural blind spots the review missed
-- ✅ Cross-model agreement is stronger signal than one thorough review
-- ❌ Adds ~2 minutes to the session
-
-**B) Skip — proceed to outputs**
-- ✅ Faster, no extra latency
-- ❌ Single-model coverage only
-
-**Net** — 2 minutes for a second opinion is almost always worth it
-
-**If B:** Print "Skipping outside voice." and continue to the next section.
-
-**If A:** Construct the plan review prompt. Read the plan file being reviewed. If scope decisions were written during Step 0, read that context too.
+Construct the plan review prompt. Read the plan file being reviewed. If scope decisions
+were written during Step 0, read that context too.
 
 Construct this prompt (substitute the actual plan content — if plan content exceeds 30KB,
 truncate to the first 30KB and note "Plan truncated for size"). **Always start with the
@@ -578,7 +561,7 @@ At the end of the review, fill in and display this summary so the user can see a
 - What already exists: written
 - TODOS.md updates: ___ items proposed to user
 - Failure modes: ___ critical gaps flagged
-- Outside voice: ran (codex/claude) / skipped
+- Outside voice: ran (codex/claude) / unavailable
 - Parallelization: ___ lanes, ___ parallel / ___ sequential
 - Lake Score: X/Y recommendations chose complete option
 
@@ -616,7 +599,7 @@ Display:
 - **Eng Review (required by default):** The only review that gates shipping. Covers architecture, code quality, tests, performance.
 - **CEO Review (optional):** Use your judgment. Recommend it for big product/business changes, new user-facing features, or scope decisions. Skip for bug fixes, refactors, infra, and cleanup.
 - **Design Review (optional):** Use your judgment. Recommend it for UI/UX changes. Skip for backend-only, infra, or prompt-only changes.
-- **Outside Voice (optional):** Independent plan review from a different AI model. Offered after all review sections complete. Falls back to Claude subagent if Codex is unavailable. Never gates shipping.
+- **Outside Voice (always run):** Independent plan review from a different AI model. Runs automatically after all review sections complete — no confirmation. Falls back to Claude subagent if Codex is unavailable. Never gates shipping.
 
 **Verdict logic:**
 - **CLEARED**: Eng Review has >= 1 run with status "clean"

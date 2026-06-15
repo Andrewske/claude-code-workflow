@@ -294,18 +294,24 @@ command -v codex >/dev/null 2>&1 && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AV
 
 Present a decision brief:
 
-> "All review sections are complete. Want an outside voice? A different AI system can
-> give a brutally honest, independent challenge of this plan — logical gaps, feasibility
-> risks, and blind spots that are hard to catch from inside the review. Takes about 2
-> minutes."
->
-> RECOMMENDATION: Choose A — an independent second opinion catches structural blind
-> spots. Two different AI models agreeing on a plan is stronger signal than one model's
-> thorough review. Completeness: A=9/10, B=7/10.
+### D<N> · Get an outside voice on this plan?
 
-Options:
-- A) Get the outside voice (recommended)
-- B) Skip — proceed to outputs
+All review sections are complete.
+
+**Plain English** — A different AI gives a brutally honest, independent challenge — logical gaps, feasibility risks, blind spots. Takes ~2 minutes. Skipping means relying on a single model's review.
+
+**Recommend → A** · two models agreeing is stronger signal than one · A 9/10 vs B 7/10
+
+**A) Get the outside voice** ✅ pick
+- ✅ Independent model catches structural blind spots the review missed
+- ✅ Cross-model agreement is stronger signal than one thorough review
+- ❌ Adds ~2 minutes to the session
+
+**B) Skip — proceed to outputs**
+- ✅ Faster, no extra latency
+- ❌ Single-model coverage only
+
+**Net** — 2 minutes for a second opinion is almost always worth it
 
 **If B:** Print "Skipping outside voice." and continue to the next section.
 
@@ -385,17 +391,29 @@ explicit user approval.
 
 For each substantive tension point, present a decision brief:
 
-> "Cross-model disagreement on [topic]. The review found [X] but the outside voice
-> argues [Y]. [One sentence on what context you might be missing.]"
->
-> RECOMMENDATION: Choose [A or B] because [one-line reason explaining which argument
-> is more compelling and why]. Completeness: A=X/10, B=Y/10.
+### D<N> · Cross-model disagreement on [topic]
 
-Options:
-- A) Accept the outside voice's recommendation (I'll apply this change)
-- B) Keep the current approach (reject the outside voice)
-- C) Investigate further before deciding
-- D) Add to TODOS.md for later
+**Plain English** — The review found [X] but the outside voice argues [Y]. [One sentence on what context you might be missing.]
+
+**Recommend → A** · [one-line reason explaining which argument is more compelling and why]
+
+**A) Accept the outside voice's recommendation** ✅ pick
+- ✅ [pro of accepting]
+- ❌ [con of accepting]
+
+**B) Keep the current approach**
+- ✅ [pro of keeping]
+- ❌ [con of keeping]
+
+**C) Investigate further before deciding**
+- ✅ More information before committing
+- ❌ Delays the review
+
+**D) Add to TODOS.md for later**
+- ✅ Unblocks implementation now
+- ❌ Risk of never revisiting
+
+**Net** — [one line closing the tradeoff]
 
 Wait for the user's response. Do NOT default to accepting because you agree with the
 outside voice. If the user chooses B, the current approach stands — do not re-argue.
@@ -422,7 +440,7 @@ Follow the Decision Brief Format from the preamble above. Additional rules for p
 * For each option, specify in one line: effort (human: ~X / CC: ~Y), risk, and maintenance burden. If the complete option is only marginally more effort than the shortcut with CC, recommend the complete option.
 * **Map the reasoning to my engineering preferences above.** One sentence connecting your recommendation to a specific preference (DRY, explicit > clever, minimal diff, etc.).
 * Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
-* **Coverage vs kind:** for every per-issue decision brief you raise in this review, decide whether the options differ in coverage or in kind. If coverage (e.g., more tests vs fewer, complete error handling vs happy-path-only, full edge-case coverage vs shortcut), include `Completeness: N/10` on each option. If kind (e.g., architectural choice between two different systems, posture-over-posture, A/B/C where each is a different kind of thing), skip the score and add one line: `Note: options differ in kind, not coverage — no completeness score.` Do NOT fabricate scores on kind-differentiated questions — filler scores are worse than no score.
+* **Coverage vs kind:** for every per-issue decision brief you raise in this review, decide whether the options differ in coverage or in kind. If coverage (e.g., more tests vs fewer, complete error handling vs happy-path-only, full edge-case coverage vs shortcut), append a completeness tag to the Recommend line (`· A 10/10 vs B 7/10`). If kind (e.g., architectural choice between two different systems, posture-over-posture, A/B/C where each is a different kind of thing), skip the score and add one line: `Note: options differ in kind, not coverage — no completeness score.` Do NOT fabricate scores on kind-differentiated questions — filler scores are worse than no score.
 * **Zero findings:** if a section has zero findings, state "No issues, moving on" and proceed. Otherwise, present a decision brief for each finding — a finding with an "obvious fix" is still a finding and still needs user approval before any change lands in the plan.
 
 ## Required outputs
@@ -672,9 +690,12 @@ After displaying the Review Readiness Dashboard, check if additional reviews wou
 **If no additional reviews are needed:** state "All relevant reviews complete. Ready to implement."
 
 Present a decision brief with only the applicable options:
-- **A)** Run /plan-design (only if UI scope detected and no design review exists)
-- **B)** Run /plan-ceo (only if significant product change and no CEO review exists)
-- **C)** Ready to implement — run /ship when done
+
+**A)** Run /plan-design (only if UI scope detected and no design review exists)
+
+**B)** Run /plan-ceo (only if significant product change and no CEO review exists)
+
+**C)** Ready to implement — run /ship when done
 
 ## Unresolved decisions
 If any decision brief goes unanswered or the user interrupts to move on, note which decisions were left unresolved. At the end of the review, list these as "Unresolved decisions that may bite you later" — never silently default to an option.

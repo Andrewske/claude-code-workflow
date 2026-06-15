@@ -259,22 +259,27 @@ thorough review.
 
 Present a decision brief:
 
-D? — Outside voice: get an independent second opinion?
-ELI10: All review sections are complete. A different AI system can give a brutally honest, independent challenge of this plan — logical gaps, feasibility risks, and blind spots that are hard to catch from inside the review. Takes about 2 minutes.
-Stakes if we pick wrong: Skipping means blind spots that survived the review go undetected.
-Recommendation: A — an independent second opinion catches structural blind spots. Two different AI models agreeing on a plan is stronger signal than one model's thorough review. Completeness: A=9/10, B=7/10.
-Pros / cons:
-A) Get the outside voice (recommended)
-  ✅ Independent second opinion catches structural blind spots the main review missed
-  ✅ Cross-model agreement is a strong confidence signal before implementation
-  ❌ Adds ~2 minutes to the review session
-B) Skip — proceed to outputs
-  ✅ Saves time if you're confident in the review findings
-  ❌ No independent check — blind spots that survived the review remain undetected
-Net: Tradeoff between review confidence vs. time. Outside voice is cheap and high-value.
+### Outside voice?
+
+All review sections are complete.
+
+**Plain English** — A different AI system can give a brutally honest, independent challenge of this plan — logical gaps, feasibility risks, and blind spots that are hard to catch from inside the review. Takes about 2 minutes. Skipping means blind spots that survived the review go undetected.
+
+**Recommend → A** · cross-model agreement is a stronger signal than one model's thorough review · A 9/10 vs B 7/10
+
+**A) Get the outside voice** ✅ pick
+- ✅ Independent second opinion catches structural blind spots the main review missed
+- ✅ Cross-model agreement is a strong confidence signal before implementation
+- ❌ Adds ~2 minutes to the review session
+
+**B) Skip — proceed to outputs**
+- ✅ Saves time if you're confident in the review findings
+- ❌ No independent check — blind spots that survived the review remain undetected
+
+**Net** — Review confidence vs. time; outside voice is cheap and high-value.
 
 Options:
-- A) Get the outside voice (recommended)
+- A) Get the outside voice
 - B) Skip — proceed to outputs
 
 **If B:** Print "Skipping outside voice." and continue to the next section.
@@ -322,16 +327,29 @@ explicit user approval.
 
 For each substantive tension point, present a decision brief:
 
-D? — Cross-model disagreement on [topic]
-ELI10: The review found [X] but the outside voice argues [Y]. [One sentence on what context you might be missing.]
-Stakes if we pick wrong: Choosing wrong here affects [describe the consequence].
-Recommendation: Choose [A or B] because [one-line reason explaining which argument is more compelling and why]. Completeness: A=X/10, B=Y/10.
+### D? · Cross-model disagreement on [topic]
 
-Options:
-- A) Accept the outside voice's recommendation (I'll apply this change)
-- B) Keep the current approach (reject the outside voice)
-- C) Investigate further before deciding
-- D) Add to TODOS.md for later
+**Plain English** — The review found [X] but the outside voice argues [Y]. [One sentence on what context you might be missing. Choosing wrong here affects [describe the consequence].]
+
+**Recommend → [A or B]** · [one-line reason explaining which argument is more compelling and why] · A X/10 vs B Y/10
+
+**A) Accept the outside voice's recommendation** ✅ pick
+- ✅ [pro, one line]
+- ❌ [con, one line]
+
+**B) Keep the current approach**
+- ✅ [pro, one line]
+- ❌ [con, one line]
+
+**C) Investigate further before deciding**
+- ✅ Avoids committing before you have enough signal
+- ❌ Delays the review
+
+**D) Add to TODOS.md for later**
+- ✅ Unblocks shipping; revisit when you have more context
+- ❌ Risk it stays open indefinitely
+
+**Net** — [one line: which argument is more compelling and why]
 
 Wait for the user's response. Do NOT default to accepting because you agree with the
 outside voice. If the user chooses B, the current approach stands — do not re-argue.

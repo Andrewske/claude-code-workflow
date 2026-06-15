@@ -39,36 +39,38 @@ If the user invokes a skill in plan mode, the skill takes precedence over generi
 
 Every decision is a decision brief written directly in chat as markdown — NEVER via the AskUserQuestion tool. Present ONE brief at a time, then end your turn and wait for the user to reply in free text. Do not call any tool to ask — just write the brief and stop.
 
+Structure for scannability: a Markdown `###` header, short labeled blocks, a blank line between every block, tight one-line bullets. NEVER a wall of prose.
+
 ```
-D<N> — <one-line question title>
-Project/branch/task: <1 short grounding sentence using the current branch>
-ELI10: <plain English a 16-year-old could follow, 2-4 sentences, name the stakes>
-Stakes if we pick wrong: <one sentence on what breaks, what user sees, what's lost>
-Recommendation: <choice> because <one-line reason>
-Completeness: A=X/10, B=Y/10   (or: Note: options differ in kind, not coverage — no completeness score)
-Pros / cons:
-A) <option label> (recommended)
-  ✅ <pro — concrete, observable, ≥40 chars>
-  ❌ <con — honest, ≥40 chars>
-B) <option label>
-  ✅ <pro>
-  ❌ <con>
-Net: <one-line synthesis of what you're actually trading off>
+### D<N> · <one-line question>
+
+`<branch>` · `<file or location>` — <≤1 short grounding clause>
+
+**Plain English** — <2-3 sentences MAX, fold the stakes in (what breaks if we pick wrong). Omit this block when the title + options already make the decision self-evident.>
+
+**Recommend → <X>** · <one-line reason>
+
+**A) <option label>** ✅ pick · <human ~Xm / AI ~Ym>
+- ✅ <pro, one line>
+- ✅ <pro, one line>
+- ❌ <con, one line>
+
+**B) <option label>**
+- ✅ <pro, one line>
+- ❌ <con, one line>
+
+**Net** — <one line: the actual tradeoff>
 ```
 
-D-numbering: first question in a skill invocation is `D1`; increment yourself. This is a model-level instruction, not a runtime counter.
-
-ELI10 is always present, in plain English, not function names. Recommendation is ALWAYS present. Keep the `(recommended)` label.
-
-Completeness: use `Completeness: N/10` only when options differ in coverage. 10 = complete, 7 = happy path, 3 = shortcut. If options differ in kind, write: `Note: options differ in kind, not coverage — no completeness score.`
-
-Pros / cons: use ✅ and ❌. Minimum 2 pros and 1 con per option when the choice is real; Minimum 40 characters per bullet. Hard-stop escape for one-way/destructive confirmations: `✅ No cons — this is a hard-stop choice`.
-
-Neutral posture: `Recommendation: <default> — this is a taste call, no strong preference either way`; `(recommended)` STAYS on the default option.
-
-Effort both-scales: when an option involves effort, label both human-team and AI time, e.g. `(human: ~2 days / AI: ~15 min)`. Makes AI compression visible at decision time.
-
-Net line closes the tradeoff. Per-skill instructions may add stricter rules.
+Rules:
+- **D-numbering:** first brief in a skill invocation is `D1`; increment yourself.
+- **Header:** `### D<N> · <question>` renders as a distinct heading — the decision must be the most scannable thing in the brief.
+- **Plain English:** plain words a 16-year-old follows, not function names; ≤3 sentences with the stakes folded in. DROP the block entirely when the decision is self-evident from the title + options.
+- **Recommend:** ALWAYS present, one line, leads with `→ <choice>`. Neutral posture: `**Recommend → <default>** · taste call, no strong preference either way` — the `✅ pick` marker still goes on the default option.
+- **Completeness:** only when options differ in coverage, append it to the Recommend line as `· A 10/10 vs B 7/10` (10 = complete, 7 = happy path, 3 = shortcut). When options differ in kind, omit it — do not fabricate scores.
+- **Options:** one bold header line per option; mark the recommended one inline with `✅ pick`; put effort inline as `human ~Xm / AI ~Ym` on effort-bearing options. Then ≥2 ✅ pros and ≥1 ❌ con as one-line bullets. Hard-stop escape for one-way/destructive confirmations: a single `- ✅ No cons — hard-stop choice`.
+- **Net:** one line that closes the tradeoff.
+- **Length discipline:** every line stays scannable (~100 chars, no wrapping into mush); no multi-line paragraphs anywhere; blank line between every block.
 
 ### Handling many options
 
@@ -81,26 +83,24 @@ After a multi-item brief, restate the assembled set in one line and confirm befo
 ### Self-check before emitting
 
 Before sending a decision brief, verify:
-- [ ] D<N> header present
-- [ ] ELI10 paragraph present (stakes line too)
-- [ ] Recommendation line present with concrete reason
-- [ ] Completeness scored (coverage) OR kind-note present (kind)
-- [ ] Every option has ≥2 ✅ and ≥1 ❌, each ≥40 chars (or hard-stop escape)
-- [ ] (recommended) label on one option
-- [ ] Dual-scale effort labels on effort-bearing options (human / AI)
+- [ ] `### D<N> · …` header line present
+- [ ] Plain English ≤3 sentences with stakes folded in (or omitted as self-evident)
+- [ ] Recommend line present, leads with `→ <choice>`, one-line reason
+- [ ] Completeness appended to the Recommend line only when options differ in coverage; else omitted
+- [ ] Each option is a bold header; the pick marked `✅ pick`; ≥2 ✅ and ≥1 ❌ one-line bullets
+- [ ] Effort inline (human / AI) on effort-bearing options
 - [ ] Net line closes the decision
+- [ ] Blank line between every block; no multi-line paragraphs; lines stay scannable
 - [ ] You are writing the brief as chat markdown, NOT calling AskUserQuestion
-- [ ] Non-ASCII characters (CJK / accents) written directly, NOT \u-escaped
-- [ ] If you had many options, you listed them all as labeled bullets — did NOT drop any
-- [ ] For multi-item briefs, you checked dependencies between options before presenting
-- [ ] If the user Holds an item, you stop and discuss before continuing
+- [ ] Non-ASCII characters written directly, NOT \u-escaped
+- [ ] If you had many options, you listed them all — did NOT drop any
 
 
 ## Completeness Principle — Boil the Lake
 
 AI makes completeness cheap. Recommend complete lakes (tests, edge cases, error paths); flag oceans (rewrites, multi-quarter migrations).
 
-When options differ in coverage, include `Completeness: X/10` (10 = all edge cases, 7 = happy path, 3 = shortcut). When options differ in kind, write: `Note: options differ in kind, not coverage — no completeness score.` Do not fabricate scores.
+When options differ in coverage, append it to the Recommend line as `· A 10/10 vs B 7/10` (10 = all edge cases, 7 = happy path, 3 = shortcut). When options differ in kind, write: `Note: options differ in kind, not coverage — no completeness score.` Do not fabricate scores.
 
 ## Confusion Protocol
 

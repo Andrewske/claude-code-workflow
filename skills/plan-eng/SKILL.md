@@ -7,7 +7,6 @@ allowed-tools:
   - Write
   - Grep
   - Glob
-  - AskUserQuestion
   - Bash
   - WebSearch
 triggers:
@@ -33,13 +32,13 @@ In plan mode, allowed because they inform the plan: Read, Write, Grep, Glob, Bas
 
 ## Skill Invocation During Plan Mode
 
-If the user invokes a skill in plan mode, the skill takes precedence over generic plan mode behavior. **Treat the skill file as executable instructions, not reference.** Follow it step by step starting from Step 0; the first AskUserQuestion is the workflow entering plan mode, not a violation of it. AskUserQuestion satisfies plan mode's end-of-turn requirement. If no AskUserQuestion variant is callable, the skill is BLOCKED — stop and report `BLOCKED — AskUserQuestion unavailable` per the AskUserQuestion Format rule. At a STOP point, stop immediately. Do not continue the workflow or call ExitPlanMode there. Call ExitPlanMode only after the skill workflow completes, or if the user tells you to cancel the skill or leave plan mode.
+If the user invokes a skill in plan mode, the skill takes precedence over generic plan mode behavior. **Treat the skill file as executable instructions, not reference.** Follow it step by step starting from Step 0; the first decision brief is the workflow entering plan mode, not a violation of it. Presenting a decision brief in chat and ending your turn to await the user's reply satisfies plan mode's end-of-turn requirement — plain text output is a valid plan-mode pause. Never use the AskUserQuestion tool in this skill; all decisions are presented as chat markdown. At a STOP point, stop immediately. Do not continue the workflow or call ExitPlanMode there. Call ExitPlanMode only after the skill workflow completes, or if the user tells you to cancel the skill or leave plan mode.
 
-## AskUserQuestion Format
+## Decision Brief Format
 
 ### Format
 
-Every AskUserQuestion is a decision brief and must be sent as tool_use, not prose.
+Every decision is a decision brief written directly in chat as markdown — NEVER via the AskUserQuestion tool. Present ONE brief at a time, then end your turn and wait for the user to reply in free text. Do not call any tool to ask — just write the brief and stop.
 
 ```
 D<N> — <one-line question title>
@@ -72,24 +71,19 @@ Effort both-scales: when an option involves effort, label both human-team and CC
 
 Net line closes the tradeoff.
 
-### Handling 5+ options — split, never drop
+### Handling many options
 
-AskUserQuestion caps every call at **4 options**. With 5+ real options, NEVER drop, merge, or silently defer one to fit. Pick a compliant shape:
+Chat has no option cap — list every real option as a labeled bullet (A, B, C, D, …) in a single brief. NEVER drop, merge, or silently defer an option to save space.
 
-- **Batch into ≤4-groups** — for coherent alternatives. One call, 5th surfaced only if first 4 don't fit.
-- **Split per-option** — for independent scope items. Fire N sequential calls, one per option. Default to this when unsure.
+For independent scope items (e.g. "ship E1..E6?"), present them as a numbered list within one brief, each item with its own Recommendation and a decision menu: **Include / Defer / Cut / Hold (stop and discuss)**. The user replies in free text per item (e.g. "E1 include, E2 defer, E3 cut"). If the user picks Hold on any item, stop and discuss it before continuing.
 
-Per-option call shape: `D<N>.k` header (e.g. D3.1..D3.5), ELI10 per option, Recommendation, kind-note (no completeness score — Include/Defer/Cut/Hold are decision actions), and 4 buckets: **A) Include**, **B) Defer**, **C) Cut**, **D) Hold** (stop chain, discuss).
+After a multi-item brief, restate the assembled set in one line and confirm before shipping it.
 
-After the chain, fire `D<N>.final` to validate the assembled set and confirm shipping it. Use `D<N>.revise-<k>` to revise one option without re-running the chain.
-
-For N>6, fire a `D<N>.0` meta-AskUserQuestion first (proceed / narrow / batch).
-
-**Non-ASCII characters — write directly, never \u-escape.** When any string field contains Chinese (繁體/簡體), Japanese, Korean, or other non-ASCII text, emit the literal UTF-8 characters; never escape them as `\uXXXX`.
+**Non-ASCII characters — write directly, never \u-escape.** When any field contains Chinese, Japanese, Korean, or other non-ASCII text, emit the literal UTF-8 characters; never escape them as \uXXXX.
 
 ### Self-check before emitting
 
-Before calling AskUserQuestion, verify:
+Before sending a decision brief, verify:
 - [ ] D<N> header present
 - [ ] ELI10 paragraph present (stakes line too)
 - [ ] Recommendation line present with concrete reason
@@ -98,11 +92,11 @@ Before calling AskUserQuestion, verify:
 - [ ] (recommended) label on one option
 - [ ] Dual-scale effort labels on effort-bearing options (human / CC)
 - [ ] Net line closes the decision
-- [ ] You are calling the tool, not writing prose
+- [ ] You are writing the brief as chat markdown, NOT calling AskUserQuestion
 - [ ] Non-ASCII characters (CJK / accents) written directly, NOT \u-escaped
-- [ ] If you had 5+ options, you split (or batched into ≤4-groups) — did NOT drop any
-- [ ] If you split, you checked dependencies between options before firing the chain
-- [ ] If a per-option Hold fires, you stopped the chain immediately (didn't queue)
+- [ ] If you had many options, you listed them all as labeled bullets — did NOT drop any
+- [ ] For multi-item briefs, you checked dependencies between options before presenting
+- [ ] If the user Holds an item, you stop and discuss before continuing
 
 
 ## Completeness Principle — Boil the Lake
@@ -222,9 +216,9 @@ Before reviewing anything, answer these questions:
    - How will users download or install it (GitHub Releases, package manager, container registry)?
    If the plan defers distribution, flag it explicitly in the "NOT in scope" section — don't let it silently drop.
 
-If the complexity check triggers (8+ files or 2+ new classes/services), STOP before any review-section work. Call AskUserQuestion: name what's overbuilt, propose a minimal version that achieves the core goal, ask whether to reduce or proceed as-is. The AskUserQuestion call is a tool_use, not prose — call the tool directly.
+If the complexity check triggers (8+ files or 2+ new classes/services), STOP before any review-section work. Present a decision brief: name what's overbuilt, propose a minimal version that achieves the core goal, ask whether to reduce or proceed as-is.
 
-**STOP.** Do NOT proceed to Section 1 (Architecture review), edit the plan file with a proposed scope reduction, or call ExitPlanMode until the user responds. Naming the 80% solution in chat prose and continuing — or loading the AskUserQuestion schema via ToolSearch and then never invoking it — is the failure mode this gate exists to prevent.
+**STOP.** Do NOT proceed to Section 1 (Architecture review), edit the plan file with a proposed scope reduction, or call ExitPlanMode until the user responds. Naming the 80% solution in chat prose and continuing without ending your turn is the failure mode this gate exists to prevent.
 
 If the complexity check does not trigger, present your Step 0 findings and proceed directly to Section 1.
 

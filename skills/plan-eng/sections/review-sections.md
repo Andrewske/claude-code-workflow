@@ -2,7 +2,7 @@
 
 **Anti-skip rule:** Never condense, abbreviate, or skip any review section (1-4) regardless of plan type (strategy, spec, code, infra). Every section in this skill exists for a reason. "This is a strategy doc so implementation sections don't apply" is always wrong — implementation details are where strategy breaks down. If a section genuinely has zero findings, say "No issues found" and move on — but you must evaluate it.
 
-**Anti-shortcut clause:** The plan file is the OUTPUT of the interactive review, not a substitute for it. Writing every finding into one plan write and calling ExitPlanMode without firing AskUserQuestion is the precise failure mode of the May 2026 transcript bug — the model explored, found issues, and dumped them into a deliverable rather than walking the user through them. If you have ANY non-trivial finding in any review section, the path from finding to ExitPlanMode goes THROUGH AskUserQuestion. Zero findings in every section is the only path to ExitPlanMode that bypasses AskUserQuestion. If you find yourself wanting to write a plan with findings before asking, stop and call AskUserQuestion now — that's the bug, recognize it.
+**Anti-shortcut clause:** The plan file is the OUTPUT of the interactive review, not a substitute for it. Writing every finding into one plan write and calling ExitPlanMode without presenting decision briefs is the precise failure mode of the May 2026 transcript bug — the model explored, found issues, and dumped them into a deliverable rather than walking the user through them. If you have ANY non-trivial finding in any review section, the path from finding to ExitPlanMode goes THROUGH a decision brief in chat. Zero findings in every section is the only path to ExitPlanMode that bypasses a decision brief. If you find yourself wanting to write a plan with findings before asking, stop and present a decision brief now — that's the bug, recognize it.
 
 ### 1. Architecture review
 Evaluate:
@@ -15,9 +15,9 @@ Evaluate:
 * For each new codepath or integration point, describe one realistic production failure scenario and whether the plan accounts for it.
 * **Distribution architecture:** If this introduces a new artifact (binary, package, container), how does it get built, published, and updated? Is the CI/CD pipeline part of the plan or deferred?
 
-For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Use the AskUserQuestion Format section in the skill preamble. The AskUserQuestion call is a tool_use, not prose — call the tool directly.
+For each issue found in this section, present a decision brief individually. One issue = one decision brief. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one brief. Follow the Decision Brief Format in the skill preamble.
 
-**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Loading the AskUserQuestion schema via ToolSearch and then writing the recommendation as chat prose is the failure mode this gate exists to prevent.
+**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Writing the recommendation as chat prose without ending your turn is the failure mode this gate exists to prevent.
 
 ## Confidence Calibration
 
@@ -87,9 +87,9 @@ Evaluate:
 * Areas that are over-engineered or under-engineered relative to my preferences.
 * Existing ASCII diagrams in touched files — are they still accurate after this change?
 
-For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Use the AskUserQuestion Format section in the skill preamble. The AskUserQuestion call is a tool_use, not prose — call the tool directly.
+For each issue found in this section, present a decision brief individually. One issue = one decision brief. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one brief. Follow the Decision Brief Format in the skill preamble.
 
-**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Loading the AskUserQuestion schema via ToolSearch and then writing the recommendation as chat prose is the failure mode this gate exists to prevent.
+**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Writing the recommendation as chat prose without ending your turn is the failure mode this gate exists to prevent.
 
 ### 3. Test review
 
@@ -191,7 +191,7 @@ When checking each branch, also determine whether a unit test or E2E/integration
 
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is added to the plan as a critical requirement. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is added to the plan as a critical requirement. No decision brief needed — just add it. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
@@ -263,11 +263,11 @@ Repo: {repo}
 
 This file is consumed by `/qa` and `/qa-only` as primary test input. Include only the information that helps a QA tester know **what to test and where** — not implementation details.
 
-For LLM/prompt changes: check the "Prompt/LLM changes" file patterns listed in CLAUDE.md. If this plan touches ANY of those patterns, state which eval suites must be run, which cases should be added, and what baselines to compare against. Then use AskUserQuestion to confirm the eval scope with the user.
+For LLM/prompt changes: check the "Prompt/LLM changes" file patterns listed in CLAUDE.md. If this plan touches ANY of those patterns, state which eval suites must be run, which cases should be added, and what baselines to compare against. Then present a decision brief to confirm the eval scope with the user.
 
-For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Use the AskUserQuestion Format section in the skill preamble. The AskUserQuestion call is a tool_use, not prose — call the tool directly.
+For each issue found in this section, present a decision brief individually. One issue = one decision brief. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one brief. Follow the Decision Brief Format in the skill preamble.
 
-**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Loading the AskUserQuestion schema via ToolSearch and then writing the recommendation as chat prose is the failure mode this gate exists to prevent.
+**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Writing the recommendation as chat prose without ending your turn is the failure mode this gate exists to prevent.
 
 ### 4. Performance review
 Evaluate:
@@ -276,9 +276,9 @@ Evaluate:
 * Caching opportunities.
 * Slow or high-complexity code paths.
 
-For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Use the AskUserQuestion Format section in the skill preamble. The AskUserQuestion call is a tool_use, not prose — call the tool directly.
+For each issue found in this section, present a decision brief individually. One issue = one decision brief. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one brief. Follow the Decision Brief Format in the skill preamble.
 
-**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Loading the AskUserQuestion schema via ToolSearch and then writing the recommendation as chat prose is the failure mode this gate exists to prevent.
+**STOP.** Do NOT proceed to the next review section, edit the plan file with the proposed fix, or call ExitPlanMode until the user responds. An issue with an "obvious fix" is still an issue and still needs explicit user approval before it lands in the plan. Writing the recommendation as chat prose without ending your turn is the failure mode this gate exists to prevent.
 
 ## Outside Voice — Independent Plan Challenge (optional, recommended)
 
@@ -292,7 +292,7 @@ thorough review.
 command -v codex >/dev/null 2>&1 && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
 
-Use AskUserQuestion:
+Present a decision brief:
 
 > "All review sections are complete. Want an outside voice? A different AI system can
 > give a brutally honest, independent challenge of this plan — logical gaps, feasibility
@@ -383,7 +383,7 @@ strong signal — present it as such — but it is NOT permission to act. You ma
 which argument you find more compelling, but you MUST NOT apply the change without
 explicit user approval.
 
-For each substantive tension point, use AskUserQuestion:
+For each substantive tension point, present a decision brief:
 
 > "Cross-model disagreement on [topic]. The review found [X] but the outside voice
 > argues [Y]. [One sentence on what context you might be missing.]"
@@ -410,20 +410,20 @@ If no tension points exist, note: "No cross-model tension — both reviewers agr
 
 Outside voice findings are INFORMATIONAL until the user explicitly approves each one.
 Do NOT incorporate outside voice recommendations into the plan without presenting each
-finding via AskUserQuestion and getting explicit approval. This applies even when you
+finding as a decision brief and getting explicit approval. This applies even when you
 agree with the outside voice. Cross-model consensus is a strong signal — present it as
 such — but the user makes the decision.
 
 ## CRITICAL RULE — How to ask questions
-Follow the AskUserQuestion format from the preamble above. Additional rules for plan reviews:
-* **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.
+Follow the Decision Brief Format from the preamble above. Additional rules for plan reviews:
+* **One issue = one decision brief.** Never combine multiple issues into one brief.
 * Describe the problem concretely, with file and line references.
 * Present 2-3 options, including "do nothing" where that's reasonable.
 * For each option, specify in one line: effort (human: ~X / CC: ~Y), risk, and maintenance burden. If the complete option is only marginally more effort than the shortcut with CC, recommend the complete option.
 * **Map the reasoning to my engineering preferences above.** One sentence connecting your recommendation to a specific preference (DRY, explicit > clever, minimal diff, etc.).
 * Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
-* **Coverage vs kind:** for every per-issue AskUserQuestion you raise in this review, decide whether the options differ in coverage or in kind. If coverage (e.g., more tests vs fewer, complete error handling vs happy-path-only, full edge-case coverage vs shortcut), include `Completeness: N/10` on each option. If kind (e.g., architectural choice between two different systems, posture-over-posture, A/B/C where each is a different kind of thing), skip the score and add one line: `Note: options differ in kind, not coverage — no completeness score.` Do NOT fabricate scores on kind-differentiated questions — filler scores are worse than no score.
-* **Zero findings:** if a section has zero findings, state "No issues, moving on" and proceed. Otherwise, use AskUserQuestion for each finding — a finding with an "obvious fix" is still a finding and still needs user approval before any change lands in the plan.
+* **Coverage vs kind:** for every per-issue decision brief you raise in this review, decide whether the options differ in coverage or in kind. If coverage (e.g., more tests vs fewer, complete error handling vs happy-path-only, full edge-case coverage vs shortcut), include `Completeness: N/10` on each option. If kind (e.g., architectural choice between two different systems, posture-over-posture, A/B/C where each is a different kind of thing), skip the score and add one line: `Note: options differ in kind, not coverage — no completeness score.` Do NOT fabricate scores on kind-differentiated questions — filler scores are worse than no score.
+* **Zero findings:** if a section has zero findings, state "No issues, moving on" and proceed. Otherwise, present a decision brief for each finding — a finding with an "obvious fix" is still a finding and still needs user approval before any change lands in the plan.
 
 ## Required outputs
 
@@ -434,7 +434,7 @@ Every plan review MUST produce a "NOT in scope" section listing work that was co
 List existing code/flows that already partially solve sub-problems in this plan, and whether the plan reuses them or unnecessarily rebuilds them.
 
 ### TODOS.md updates
-After all review sections are complete, present each potential TODO as its own individual AskUserQuestion. Never batch TODOs — one per question. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md` if it exists; otherwise use the fields below.
+After all review sections are complete, present each potential TODO as its own individual decision brief. Never batch TODOs — one per brief. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md` if it exists; otherwise use the fields below.
 
 For each TODO, describe:
 * **What:** One-line description of the work.
@@ -671,10 +671,10 @@ After displaying the Review Readiness Dashboard, check if additional reviews wou
 
 **If no additional reviews are needed:** state "All relevant reviews complete. Ready to implement."
 
-Use AskUserQuestion with only the applicable options:
+Present a decision brief with only the applicable options:
 - **A)** Run /plan-design (only if UI scope detected and no design review exists)
 - **B)** Run /plan-ceo (only if significant product change and no CEO review exists)
 - **C)** Ready to implement — run /ship when done
 
 ## Unresolved decisions
-If the user does not respond to an AskUserQuestion or interrupts to move on, note which decisions were left unresolved. At the end of the review, list these as "Unresolved decisions that may bite you later" — never silently default to an option.
+If any decision brief goes unanswered or the user interrupts to move on, note which decisions were left unresolved. At the end of the review, list these as "Unresolved decisions that may bite you later" — never silently default to an option.

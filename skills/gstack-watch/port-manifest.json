@@ -1,0 +1,13 @@
+{
+  "upstream_repo": "https://github.com/garrytan/gstack.git",
+  "upstream_clone": "~/dev/tools/gstack-upstream",
+  "baseline_sha": "cab774cced06e0a36b3b4b1518b8c968707f7e2f",
+  "baseline_version": "1.56.0.0",
+  "note": "baseline_sha is the gstack origin/main commit these skills were ported from. SHA is authoritative (gstack publishes no tags); version is display-only. After accepting upstream changes, bump baseline_sha by hand to the new origin/HEAD and commit.",
+  "ports": [
+    {"ported": "plan-eng",    "paths": ["plan-eng-review/SKILL.md", "plan-eng-review/sections/review-sections.md"]},
+    {"ported": "plan-ceo",    "paths": ["plan-ceo-review/SKILL.md", "plan-ceo-review/sections/review-sections.md"]},
+    {"ported": "plan-design", "paths": ["plan-design-review/SKILL.md", "plan-design-review/sections/review-sections.md"]},
+    {"ported": "browse",      "paths": ["browse/SKILL.md"]}
+  ]
+}

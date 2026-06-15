@@ -26,6 +26,11 @@ while IFS= read -r file; do
     mkdir -p "$DEST_DIR/$dir"
   fi
 
+  # Remove any existing dest first: if it's a symlink (e.g. a gstack-managed
+  # skill linking into ~/.claude/skills/gstack/), a plain `cp` would follow the
+  # link and overwrite the link *target* instead of replacing the link with our
+  # real file. rm -f guarantees a real-file copy lands.
+  rm -f "$DEST_DIR/$rel"
   cp "$file" "$DEST_DIR/$rel"
   count=$((count + 1))
   echo "  $rel"

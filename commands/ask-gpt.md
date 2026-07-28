@@ -4,9 +4,10 @@ argument-hint: [--model <model>] <prompt>
 ---
 
 <!-- Pricing config (verify periodically at https://platform.openai.com/docs/pricing):
-  gpt-5.2-codex: $1.75/1M input, $14.00/1M output
+  gpt-5.4: VERIFY — confirm current input/output $/1M before relying on the cost report
   o3: $2.00/1M input, $8.00/1M output
   gpt-4o: $2.50/1M input, $10.00/1M output
+  Note: gpt-5.2-codex / gpt-5.x-codex are retired for ChatGPT-account auth (since ~2026-06-02) — do not use as default.
 -->
 
 Send a task or question to an OpenAI model via the `codex exec` CLI. Codex does its own codebase research — do NOT pre-gather context.
@@ -14,11 +15,11 @@ Send a task or question to an OpenAI model via the `codex exec` CLI. Codex does 
 ## Argument Parsing
 
 Parse the argument string for an optional `--model` flag:
-- `--model <model>` — override the model (e.g., `--model o3`). Default: `gpt-5.2-codex`
+- `--model <model>` — override the model (e.g., `--model o3`). Default: `gpt-5.4`
 - Everything after the flag (or the entire argument if no flag) is the prompt
 
 Examples:
-- `/ask-gpt How does the payment flow work?` → model: `gpt-5.2-codex`, prompt: "How does the payment flow work?"
+- `/ask-gpt How does the payment flow work?` → model: `gpt-5.4`, prompt: "How does the payment flow work?"
 - `/ask-gpt --model o3 Review this migration for issues` → model: `o3`, prompt: "Review this migration for issues"
 
 ## Behavior
@@ -40,10 +41,12 @@ Examples:
 4. **Run codex exec.** Use the Bash tool with `run_in_background: true` and a 300000ms timeout (5 minutes):
 
    ```
-   printf '%s' '<full_prompt>' | codex exec -m <model> --full-auto --search --json --ephemeral -C <working_directory> - 2>/dev/null
+   printf '%s' '<full_prompt>' | codex exec -m <model> --sandbox workspace-write --skip-git-repo-check --json --ephemeral -C <working_directory> - 2>/dev/null
    ```
 
    Where `<full_prompt>` is the context prefix + user's question with any single quotes escaped.
+
+   Flag notes (codex ≥ 0.139): `--sandbox workspace-write` (reads unrestricted, writes sandboxed) replaces the deprecated `--full-auto`. `--skip-git-repo-check` is required because the glade dev root is not a git repo. Web search is on by default — do NOT pass `--search` or `--enable web_search` (both now error).
 
    Tell the user that GPT is working on it and they can continue with other tasks.
 

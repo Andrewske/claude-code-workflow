@@ -129,7 +129,7 @@ Proposed rewrite:
 Savings: {lines} lines, ~{tokens} tokens
 ```
 
-Then ask via AskUserQuestion with options:
+Present the options as chat markdown, then STOP and wait for a free-text reply:
 - **Accept** — apply this recommendation
 - **Edit** — accept the direction but modify the rewrite (ask what to change)
 - **Keep as-is** — leave the section unchanged

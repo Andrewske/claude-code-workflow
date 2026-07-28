@@ -4,7 +4,7 @@ argument-hint: [commit-range | branch | #PR | PR-URL]
 ---
 
 <!-- Pricing config (verify periodically at https://platform.openai.com/docs/pricing):
-  gpt-5.5: $5.00/1M input, $0.50/1M cached, $30.00/1M output (flat on ChatGPT-sub auth)
+  gpt-5.4: $5.00/1M input, $0.50/1M cached, $30.00/1M output (flat on ChatGPT-sub auth)
 -->
 
 Get GPT-5.5 to review code changes, then Claude critically evaluates the findings and presents actionable results.
@@ -92,7 +92,7 @@ Focus on: things that could cause bugs, security issues, data loss, or performan
 Use the Bash tool with `run_in_background: true` and a 300000ms timeout:
 
 ```
-cat /tmp/gpt-review-prompt.txt | codex exec -m gpt-5.5 --full-auto --search --json --ephemeral -C <working_directory> - 2>/dev/null
+cat /tmp/gpt-review-prompt.txt | codex exec -m gpt-5.4 --full-auto --search --json --ephemeral -C <working_directory> - 2>/dev/null
 ```
 
 Tell the user GPT is reviewing and they can continue working.
@@ -180,7 +180,7 @@ When user says "go":
 1. **Categorize**: Autosolve (≥90% confidence) vs. Discussion (<90%)
 2. **Discussion items first** — present ONE at a time with options A/B/C and a recommendation. **STOP after each. Wait for user response.**
 3. **Autosolve batch** — present all high-confidence fixes for confirmation.
-4. **Leverage summary** — before applying, render the final-confirmation block from `~/.claude/skills/dual-review-protocol/SKILL.md` §8 (Leverage summary) over the approved findings, then confirm.
+4. **Leverage summary** — before applying, render the final-confirmation block from `~/.claude/skills/dual-review-protocol/sections/routing-present.md` §8 (Leverage summary) over the approved findings, then confirm.
 5. **Apply** — Edit approved fixes, verify syntax.
 6. **Commit** — ask user, commit with "fix: address code review findings from GPT review"
 

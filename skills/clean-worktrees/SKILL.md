@@ -164,7 +164,7 @@ For each entry, show:
 
 ### User Confirmation
 
-After presenting the summary, ask the user using AskUserQuestion:
+After presenting the summary, ask the user in chat markdown (do not call any tool to ask):
 
 **If only safe-to-remove items exist**: "Found {N} items safe to remove (branches merged or gone from remote). Proceed?"
 - **Clean all safe** -- remove merged/gone worktrees and branches
@@ -176,7 +176,7 @@ After presenting the summary, ask the user using AskUserQuestion:
 - **Let me pick** -- present each "needs confirmation" item individually for yes/no
 - **Cancel** -- do nothing
 
-**If "Let me pick"**: Present each "needs confirmation" worktree as its own AskUserQuestion with Remove/Keep options.
+**If "Let me pick"**: Present each "needs confirmation" worktree as its own chat-markdown question with Remove/Keep options; STOP and wait for a reply on each.
 
 ### Dry-Run Mode
 

@@ -5,7 +5,6 @@ allowed-tools:
   - Read
   - Edit
   - Bash
-  - AskUserQuestion
 triggers:
   - check for gstack updates
   - sync ported skills
@@ -62,7 +61,7 @@ label it:
   in the ports, so they're **informational** — count them, don't action them.
 - `methodology` — changes to the actual review content the ports preserve: the
   body below `# Plan Review Mode`, `sections/review-sections.md`, Step 0 scope
-  challenge, cognitive patterns, the AskUserQuestion format, completeness rules.
+  challenge, cognitive patterns, the question-asking format, completeness rules.
   These are **actionable**.
 
 Be careful at the boundary: a change in a "runtime-looking" region that alters
@@ -70,9 +69,10 @@ review behavior is `methodology`, not `runtime-only`. When unsure, classify as
 `methodology` and let the user decide.
 
 **6. Present actionable changes one at a time.** For each `methodology` change,
-use AskUserQuestion: show the upstream hunk, explain what it changes, and
-recommend whether to port it into the corresponding `skills/<ported>/...` file.
-One change per question. On accept, make the edit (re-applying the port's
+present in chat markdown: show the upstream hunk, explain what it changes,
+recommend whether to port it into the corresponding `skills/<ported>/...` file
+(with a confidence %), then STOP and wait for a reply. One change per question.
+On accept, make the edit (re-applying the port's
 transformations: drop gstack runtime, keep kg-plan wiring, keep the renamed
 `## PLAN REVIEW REPORT`, keep the new skill name). After edits, run
 `bash scripts/install-skills.sh` to reinstall.
@@ -89,6 +89,6 @@ manual edit — there is intentionally no auto-mutation.
   methodology changes in the prose are still worth seeing. Never port gstack
   browse daemon/runtime details into the browseros skill.
 - This is local-only (no external posts), so applying edits is autonomous beyond
-  the per-change AskUserQuestion gate.
+  the per-change chat-markdown gate.
 - Bash rules: use plain sequential `git` calls. No `$()`, backticks, heredocs, or
   process substitution.

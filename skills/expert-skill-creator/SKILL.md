@@ -1,5 +1,5 @@
 ---
-name: creating-skills
+name: expert-skill-creator
 description: "Expert guidance for creating high-quality Claude Code skills. Covers generic skills (utilities, domain knowledge, workflows) and project-specific skills (architecture docs, debugging playbooks, codebase navigation). Use when creating a new skill, improving an existing skill, or learning skill best practices. Triggers on 'create a skill', 'build a skill', 'make a skill', 'skill for my project', 'document my architecture as a skill', 'improve this skill', or 'skill best practices'."
 ---
 
@@ -14,11 +14,23 @@ Create high-quality Claude Code skills that follow community best practices.
 3. **Progressive disclosure** - Load details only when needed
 4. **Description is discovery** - The description determines when skills trigger
 
+## Setup (run BEFORE any script invocation)
+
+Bash runs from the user's cwd, not this skill's directory, so bare `scripts/...` paths fail. **Your first Bash call must resolve the skill root**, then prefix every script path with `$SKILL_DIR`:
+
+```bash
+SKILL_DIR="${CLAUDE_PLUGIN_ROOT:+$CLAUDE_PLUGIN_ROOT/skills/expert-skill-creator}"
+[ -d "$SKILL_DIR" ] || SKILL_DIR="$HOME/.claude/skills/expert-skill-creator"
+echo "SKILL_DIR=$SKILL_DIR"
+```
+
+This resolves whether the skill runs from a plugin cache or a loose `~/.claude/skills/` install.
+
 ## Skill Creation Workflow
 
 ### Step 1: Determine Skill Type
 
-Ask the user what kind of skill they want to create:
+Infer the skill type from the request; confirm only if ambiguous:
 
 | Type | Use Case | Template |
 |------|----------|----------|
@@ -48,7 +60,7 @@ See [reference/gathering-requirements.md](reference/gathering-requirements.md) f
 Run the initialization script:
 
 ```bash
-python scripts/init_skill.py <skill-name> --type <type> --path <output-dir>
+python3 "$SKILL_DIR/scripts/init_skill.py" <skill-name> --type <type> --path <output-dir>
 ```
 
 Types: `simple`, `domain`, `project`, `workflow`
@@ -112,7 +124,7 @@ Scripts should handle errors explicitly, not punt to Claude.
 ### Step 8: Validate and Test
 
 ```bash
-python scripts/validate_skill.py <skill-directory>
+python3 "$SKILL_DIR/scripts/validate_skill.py" <skill-directory>
 ```
 
 Then test with fresh Claude session:
@@ -123,7 +135,7 @@ Then test with fresh Claude session:
 ### Step 9: Package for Distribution
 
 ```bash
-python scripts/package_skill.py <skill-directory> [output-dir]
+python3 "$SKILL_DIR/scripts/package_skill.py" <skill-directory> [output-dir]
 ```
 
 Creates `.skill` file (zip with proper structure).
@@ -155,8 +167,8 @@ Skills need updates as projects evolve. Use these commands:
 
 ### Audit Script
 ```bash
-python scripts/audit_skill.py --commits 10   # Check recent changes
-python scripts/audit_skill.py --full         # Full audit
+python3 "$SKILL_DIR/scripts/audit_skill.py" --commits 10   # Check recent changes
+python3 "$SKILL_DIR/scripts/audit_skill.py" --full         # Full audit
 ```
 
 ### Best Practices for Maintenance

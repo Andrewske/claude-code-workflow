@@ -18,7 +18,6 @@ allowed-tools:
   - mcp__browseros__press_key
   - mcp__browseros__hover
   - Read
-  - AskUserQuestion
 triggers:
   - browse this page
   - navigate to url

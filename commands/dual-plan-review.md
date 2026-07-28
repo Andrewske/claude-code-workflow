@@ -9,10 +9,15 @@ feasibility lens) — review a plan separately, then negotiate findings through
 a structured triage and debate protocol. Agreed fixes are autosolved;
 unresolved disagreements are escalated for human review.
 
-`Read` `~/.claude/skills/dual-review-protocol/SKILL.md` and follow it for the
-non-orchestration substance: codex execution, finding format, triage, debate
-(via `/plan:best-idea`), routing, presentation, and error handling. The
-GPT prompt template is `templates/gpt-prompt-plan.md`.
+The non-orchestration substance lives in the `dual-review-protocol` skill,
+split into `sections/*.md`. `Read`
+`~/.claude/skills/dual-review-protocol/SKILL.md` once — it is a thin **routing
+index**, not the content. Then at each phase `Read` *only* the section file the
+index maps for that phase (do NOT read all sections up front). The `SKILL.md §N`
+citations throughout this command resolve to section files via that index
+(§1/§10 → `sections/codex.md`, §2 → `findings.md`, §3 → `lenses.md`,
+§4/§5/§13 → `triage.md`, §6 → `debate.md`, §7/§8/§9/§11 → `routing-present.md`,
+§12 → `tier.md`). The GPT prompt template is `templates/gpt-prompt-plan.md`.
 
 ---
 
@@ -105,11 +110,11 @@ Extract per SKILL.md Section 2 minimum-viable rules.
 `{{REVIEW_SUBJECT}}` ("a plan"), `{{CLAUDE_FINDINGS}}`, `{{EVIDENCE_SOURCE}}`
 ("plan or codebase"). `Write` to `/tmp/dual-review-{TIMESTAMP}-triage.txt`.
 
-Send via `codex exec resume <SESSION_ID>` on gpt-5.5 at medium effort
+Send via `codex exec resume <SESSION_ID>` on gpt-5.4 at medium effort
 per SKILL.md Section 1 model-selection table:
 
 ```
-cat /tmp/dual-review-{TIMESTAMP}-triage.txt | codex exec resume <SESSION_ID> -m gpt-5.5 -c model_reasoning_effort=medium --json - 2>/dev/null
+cat /tmp/dual-review-{TIMESTAMP}-triage.txt | codex exec resume <SESSION_ID> -m gpt-5.4 -c model_reasoning_effort=medium --json - 2>/dev/null
 ```
 
 Timeout 120000. Apply SKILL.md Section 4 rules (self-dismiss + cross-evaluation,
@@ -125,7 +130,12 @@ Routing:
 
 ## Phase 4: Best-idea debate
 
-Per SKILL.md Section 6. Cap 5 findings (CRITICAL → LOW). Excess →
+**Skip-load gate:** if Phase 3 produced **zero disagreements** (debate queue
+empty), do NOT read `sections/debate.md` — skip straight to Phase 5. Only when
+≥1 disagreement entered the debate queue, `Read`
+`~/.claude/skills/dual-review-protocol/sections/debate.md` (§6) and follow it.
+
+Per `sections/debate.md` §6. Cap 5 findings (CRITICAL → LOW). Excess →
 `[unresolved-no-debate]`.
 
 Print "Debating finding {ID} ({N}/{total})..." before each, "{ID}: {AGREED|UNRESOLVED}" after.
@@ -135,7 +145,7 @@ substitute `{{REVIEW_SUBJECT}}` ("plan"), `{{FINDING_FULL}}`, `{{GPT_ORIGINAL}}`
 `{{CLAUDE_ORIGINAL}}`, `{{CLAUDE_*}}` (Claude's RECOMMENDATION fields),
 `{{EVIDENCE_SOURCE}}` ("plan"). `Write` to `/tmp/dual-review-{TIMESTAMP}-debate-{N}.txt`.
 
-Send via resume with `-m gpt-5.5 -c model_reasoning_effort=medium`
+Send via resume with `-m gpt-5.4 -c model_reasoning_effort=medium`
 (timeout 120000). Round 1 + optional Round 2 per SKILL.md.
 
 ### Debate transcript
@@ -178,7 +188,7 @@ Use SKILL.md Section 8 layout, adapted for plans:
 ```
 ## Dual Plan Review: [Plan Name]
 
-**Reviewers**: Claude (adversarial) + gpt-5.5 (implementation feasibility)
+**Reviewers**: Claude (adversarial) + gpt-5.4 (implementation feasibility)
 
 ### Agreement Stats
 - Total findings: [N] (Claude: [N], GPT: [N], Both found: [N])

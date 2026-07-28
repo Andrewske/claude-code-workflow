@@ -1,0 +1,38 @@
+==================================================================================
+ dual-code-review — Claude-context load baseline   (2026-06-18)
+ token estimate = bytes/4 (no tiktoken); within ~10% for markdown
+==================================================================================
+
+[UPFRONT]  read before any review work — paid on EVERY run
+  PHASE   FILE                                       BYTES   ~TOKENS
+  -------------------------------------------------------------------------
+  start   command: dual-code-review.md               12832      3208
+  start   skill: dual-review-protocol SKILL          29875      7469
+  start §0  skill: outbound-prose-setup                 2665       666
+  -------------------------------------------------------------------------
+          subtotal (3 files)                         45372     11343
+
+[LAZY]     read per-phase — paid only when that phase runs
+  PHASE   FILE                                       BYTES   ~TOKENS
+  -------------------------------------------------------------------------
+  1.5     skill: pre-commit-check                     6780      1695
+  2       structural-lens.md                          5644      1411
+  2       templates/gpt-prompt-code.md                4045      1011
+  3       templates/triage.md                         1870       468
+  4       templates/debate.md                         2001       500
+  -------------------------------------------------------------------------
+          subtotal (5 files)                         20340      5085
+
+[CODEX-SIDE]  passed to codex by path — NOT Claude context (reference)
+  PHASE   FILE                                       BYTES   ~TOKENS
+  -------------------------------------------------------------------------
+  2       schemas/findings-code.json                  1225       306
+  -------------------------------------------------------------------------
+          subtotal (1 files)                          1225       306
+
+==================================================================================
+ UPFRONT (every run):        ~11343 tokens
+ LAZY (max, all phases hit): ~ 5085 tokens
+ Claude-context total (max): ~16428 tokens
+==================================================================================
+ Note: schemas/ + the rendered /tmp gpt-prompt are codex-side, excluded above.
